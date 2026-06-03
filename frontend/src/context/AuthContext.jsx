@@ -4,7 +4,7 @@ import axios from 'axios';
 const AuthContext = createContext(null);
 
 // Set default base URL for API requests
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'https://banana-backend-6bia.onrender.com';
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'https://banana-backend-6bia.onrender.com/api';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
