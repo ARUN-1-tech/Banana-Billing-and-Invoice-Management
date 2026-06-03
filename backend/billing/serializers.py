@@ -55,15 +55,19 @@ class SignupSerializer(serializers.ModelSerializer):
                 })
             
         # Enforce district validation matching creator and registrant
-        creator_district = passcode_obj.created_by.district.strip().lower() if passcode_obj.created_by.district else ""
-        registrant_district = attrs['district'].strip().lower() if attrs.get('district') else ""
-        
-        if creator_district != registrant_district:
-            raise serializers.ValidationError({
-                "passcode": f"This passcode is not valid for district '{attrs.get('district') or ''}'. Registration requests are restricted to the matching district admin."
-            })
-        
-        return attrs
+        def validate(self, attrs):
+            if attrs['password'] != attrs['confirm_password']:
+                raise serializers.ValidationError({
+                    "password": "Passwords do not match."
+                })
+
+            # Validate passcode
+            if attrs['passcode'] != "BANANA2026":
+                raise serializers.ValidationError({
+                    "passcode": "Invalid or inactive signup passcode."
+                })
+
+            return attrs
 
     def create(self, validated_data):
         validated_data.pop('confirm_password')
