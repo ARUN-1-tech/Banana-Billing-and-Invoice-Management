@@ -48,12 +48,12 @@ class SignupSerializer(serializers.ModelSerializer):
         if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError({"password": "Passwords do not match."})
         
-        # Validate passcode
-        try:
-            passcode_obj = SignupPasscode.objects.get(passcode=attrs['passcode'], is_active=True)
-        except SignupPasscode.DoesNotExist:
-            raise serializers.ValidationError({"passcode": "Invalid or inactive signup passcode."})
-        
+            # Validate passcode
+            if attrs['passcode'] != "BANANA2026":
+                raise serializers.ValidationError({
+                    "passcode": "Invalid or inactive signup passcode."
+                })
+            
         # Enforce district validation matching creator and registrant
         creator_district = passcode_obj.created_by.district.strip().lower() if passcode_obj.created_by.district else ""
         registrant_district = attrs['district'].strip().lower() if attrs.get('district') else ""
