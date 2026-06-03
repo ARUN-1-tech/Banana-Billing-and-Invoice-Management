@@ -1,0 +1,377 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --glass-bg-light: rgba(255, 255, 255, 0.45);
+  --glass-bg-dark: rgba(20, 20, 20, 0.55);
+  --glass-border-light: rgba(255, 255, 255, 0.4);
+  --glass-border-dark: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+  --primary-color: #f6b93b; /* Vibrant Yellow/Amber for Banana Theme */
+  --primary-hover: #e5a92c;
+  --accent-color: #8c7ae6; /* Rich Purple */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: #f7f9fc;
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #1e272e;
+  position: relative;
+}
+
+body.dark-mode {
+  background-color: #0f1115;
+  color: #f5f6fa;
+}
+
+/* Background Animated Blobs */
+.bg-blobs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.15;
+  transition: all 1s ease-in-out;
+}
+
+body.dark-mode .blob {
+  opacity: 0.12;
+}
+
+.blob-1 {
+  top: -10%;
+  right: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, var(--primary-color) 0%, transparent 80%);
+  animation: float-slow 20s infinite ease-in-out;
+}
+
+.blob-2 {
+  bottom: -10%;
+  left: -10%;
+  width: 45vw;
+  height: 45vw;
+  background: radial-gradient(circle, var(--accent-color) 0%, transparent 80%);
+  animation: float-slow 25s infinite ease-in-out reverse;
+}
+
+.blob-3 {
+  top: 40%;
+  left: 30%;
+  width: 30vw;
+  height: 30vw;
+  background: radial-gradient(circle, #2ecc71 0%, transparent 80%);
+  opacity: 0.08;
+  animation: float-slow 15s infinite ease-in-out 2s;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* Core Glassmorphic Panels */
+.glass-panel {
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border-light);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+body.dark-mode .glass-panel {
+  background: var(--glass-bg-dark);
+  border: 1px solid var(--glass-border-dark);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.12);
+}
+
+body.dark-mode .glass-panel:hover {
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Card Animations */
+.floating-card {
+  animation: cardFloat 6s infinite ease-in-out;
+}
+
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.fade-in-slide {
+  animation: fadeInSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Custom styles for Ant Design components to match glass theme */
+.ant-layout {
+  background: transparent !important;
+}
+
+.ant-layout-sider {
+  background: var(--glass-bg-light) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border-right: 1px solid var(--glass-border-light) !important;
+}
+
+body.dark-mode .ant-layout-sider {
+  background: var(--glass-bg-dark) !important;
+  border-right: 1px solid var(--glass-border-dark) !important;
+}
+
+.ant-menu {
+  background: transparent !important;
+  border: none !important;
+}
+
+.ant-menu-item-selected {
+  background-color: rgba(246, 185, 59, 0.2) !important;
+  color: var(--primary-color) !important;
+  font-weight: 600;
+  border-radius: 8px !important;
+}
+
+.ant-card {
+  background: var(--glass-bg-light) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid var(--glass-border-light) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--glass-shadow) !important;
+  color: inherit !important;
+  overflow: hidden;
+}
+
+body.dark-mode .ant-card {
+  background: var(--glass-bg-dark) !important;
+  border: 1px solid var(--glass-border-dark) !important;
+}
+
+.ant-table {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+.ant-table-thead > tr > th {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-bottom: 1px solid var(--glass-border-light) !important;
+  color: inherit !important;
+}
+
+body.dark-mode .ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-bottom: 1px solid var(--glass-border-dark) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  background: transparent !important;
+}
+
+body.dark-mode .ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+.ant-input, .ant-input-password, .ant-input-number, .ant-select-selector, .ant-picker {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 10px !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+body.dark-mode .ant-input, body.dark-mode .ant-input-password, body.dark-mode .ant-input-number, body.dark-mode .ant-select-selector, body.dark-mode .ant-picker {
+  background: rgba(20, 20, 20, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+.ant-input:focus, .ant-input-focused, .ant-input-number:focus, .ant-select-selector:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 2px rgba(246, 185, 59, 0.2) !important;
+}
+
+/* Neon buttons */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)) !important;
+  border: none !important;
+  color: #1e272e !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 15px rgba(246, 185, 59, 0.25) !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(246, 185, 59, 0.4) !important;
+}
+
+.btn-purple {
+  background: linear-gradient(135deg, var(--accent-color), #706fd3) !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 15px rgba(140, 122, 230, 0.25) !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-purple:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(140, 122, 230, 0.4) !important;
+}
+
+/* Mobile Responsive Layout Overrides */
+@media (max-width: 768px) {
+  .header-clock {
+    display: none !important;
+  }
+  .user-details-header {
+    display: none !important;
+  }
+  
+  /* Compact content margins on small screens to save valuable space */
+  .ant-layout-content {
+    margin: 12px 8px !important;
+  }
+  
+  /* Compact cards on mobile */
+  .ant-card-body {
+    padding: 12px !important;
+  }
+  
+  /* Make all tables scrollable horizontally to prevent squishing */
+  .ant-table-wrapper {
+    overflow-x: auto !important;
+  }
+  .ant-table {
+    width: 100% !important;
+    min-width: 500px !important;
+  }
+
+  /* Form responsive spacing adjustments */
+  .ant-form-item {
+    margin-bottom: 12px !important;
+  }
+}
+
+/* Glassmorphic Drawer for Mobile navigation menu */
+.mobile-drawer-nav .ant-drawer-content {
+  background: var(--glass-bg-light) !important;
+  backdrop-filter: blur(25px) saturate(180%) !important;
+}
+
+body.dark-mode .mobile-drawer-nav .ant-drawer-content {
+  background: var(--glass-bg-dark) !important;
+}
+
+.mobile-drawer-nav .ant-drawer-header {
+  border-bottom: 1px solid var(--glass-border-light) !important;
+}
+
+body.dark-mode .mobile-drawer-nav .ant-drawer-header {
+  border-bottom: 1px solid var(--glass-border-dark) !important;
+}
+
+/* Smooth Premium Micro-Animations for User Attraction */
+.glass-panel, .ant-card, .btn-primary, .btn-purple, .ant-input, .ant-input-password, .ant-input-number, .ant-select-selector {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Hover effects for quick action links and inputs */
+.ant-input:hover, .ant-input-password:hover, .ant-input-number:hover, .ant-select-selector:hover {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 8px rgba(246, 185, 59, 0.2) !important;
+}
+
+/* Hover scales for general buttons and list elements */
+.ant-menu-item:hover {
+  transform: translateX(4px);
+  transition: transform 0.2s ease-in-out;
+}
+
+.btn-primary:active, .btn-purple:active {
+  transform: scale(0.97) !important;
+}
+
+/* Print specific rules */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .glass-panel, .ant-card {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+  .bg-blobs {
+    display: none !important;
+  }
+}
