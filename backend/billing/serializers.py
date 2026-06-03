@@ -42,61 +42,59 @@ class SignupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'confirm_password', 'name', 'phone', 'district', 'passcode')
+        fields = (
+            'username',
+            'email',
+            'password',
+            'confirm_password',
+            'name',
+            'phone',
+            'district',
+            'passcode'
+        )
 
     def validate(self, attrs):
+
+        # Password match validation
         if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({"password": "Passwords do not match."})
-        
-            # Validate passcode
-            if attrs['passcode'] != "BANANA2026":
-                raise serializers.ValidationError({
-                    "passcode": "Invalid or inactive signup passcode."
-                })
-            
-        # Enforce district validation matching creator and registrant
-        def validate(self, attrs):
+            raise serializers.ValidationError({
+                "password": "Passwords do not match"
+            })
 
-            if attrs['password'] != attrs['confirm_password']:
-                raise serializers.ValidationError({
-                    "password": "Passwords do not match"
-                })
+        # Passcode validation
+        try:
+            SignupPasscode.objects.get(
+                passcode=attrs['passcode'],
+                is_active=True
+            )
 
-            # Validate passcode
-            try:
-                passcode_obj = SignupPasscode.objects.get(
-                    passcode=attrs['passcode'],
-                    is_active=True
-                )
+        except SignupPasscode.DoesNotExist:
+            raise serializers.ValidationError({
+                "passcode": "Invalid or inactive signup passcode"
+            })
 
-            except SignupPasscode.DoesNotExist:
-                raise serializers.ValidationError({
-                    "passcode": "Invalid or inactive signup passcode"
-                })
-
-            return attrs
+        return attrs
 
     def create(self, validated_data):
+
         validated_data.pop('confirm_password')
-        passcode_str = validated_data.pop('passcode')
-        
-        # Create user as inactive/not approved by default
+        validated_data.pop('passcode')
+
         password = validated_data.pop('password')
+
         user = User.objects.create(
             username=validated_data['username'],
             email=validated_data['email'],
             name=validated_data.get('name', ''),
             phone=validated_data.get('phone', ''),
             district=validated_data.get('district', ''),
-            role='owner', # Registered users are owners
+            role='owner',
             is_approved=False
         )
+
         user.set_password(password)
         user.save()
 
-        # Mark passcode as used (optional, or we can keep it active, but requirements say:
-        # "validate passcode. If valid -> account created". We keep the passcode active for multiple uses,
-        # or we can expire it if needed. Let's keep it active but register the usage)
         return user
 
 class SignupPasscodeSerializer(serializers.ModelSerializer):
