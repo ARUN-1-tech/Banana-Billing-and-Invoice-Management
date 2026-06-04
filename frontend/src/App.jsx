@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ConfigProvider, theme, Spin } from 'antd';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import MainLayout from './components/MainLayout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -139,9 +140,11 @@ function App() {
       }}
     >
       <BrowserRouter>
-        <AuthProvider>
-          <AppContent isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <AppContent isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
+          </AuthProvider>
+        </LanguageProvider>
       </BrowserRouter>
     </ConfigProvider>
   );

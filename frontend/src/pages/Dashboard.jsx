@@ -8,10 +8,12 @@ import {
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { Title, Text } = Typography;
 
 const Dashboard = () => {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -43,13 +45,13 @@ const Dashboard = () => {
 
   const rateColumns = [
     {
-      title: 'Banana Type',
+      title: t('variety_type'),
       dataIndex: 'banana_type',
       key: 'banana_type',
       render: (text) => <Text style={{ fontWeight: 600 }}>{text}</Text>,
     },
     {
-      title: 'Rate',
+      title: t('banana_rates'),
       dataIndex: 'rate',
       key: 'rate',
       render: (text) => <Text style={{ color: '#2ecc71', fontWeight: 600 }}>₹{text} / Kg</Text>,
@@ -284,7 +286,7 @@ const Dashboard = () => {
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
         <div>
           <Title level={2} style={{ marginBottom: '4px', fontWeight: 800 }}>
-            Welcome back, {user?.name || user?.username}!
+            {t('welcome')}, {user?.name || user?.username}!
           </Title>
           <Text type="secondary">
             {user?.business_name || 'Banana Billing Station'} - {user?.district} District
@@ -297,7 +299,7 @@ const Dashboard = () => {
           className="btn-primary"
           onClick={() => navigate('/create-invoice')}
         >
-          Create New Bill
+          {t('create_invoice')}
         </Button>
       </div>
 
@@ -308,7 +310,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={6}>
           <Card className="glass-panel" style={{ height: '100%' }}>
             <Statistic
-              title="Today's Revenue"
+              title={t('todays_revenue')}
               value={d.total_revenue}
               precision={2}
               prefix="₹"
@@ -322,7 +324,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={6}>
           <Card className="glass-panel" style={{ height: '100%' }}>
             <Statistic
-              title="Bills Generated Today"
+              title={t('bills_today')}
               value={d.total_bills}
               prefix={<FileTextOutlined style={{ marginRight: '8px', color: '#f6b93b' }} />}
               valueStyle={{ fontWeight: 700 }}
@@ -335,7 +337,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={6}>
           <Card className="glass-panel" style={{ height: '100%' }}>
             <Statistic
-              title="Customers Visited"
+              title={t('customers_visited')}
               value={d.total_customers}
               prefix={<UserOutlined style={{ marginRight: '8px', color: '#8c7ae6' }} />}
               valueStyle={{ fontWeight: 700 }}
@@ -348,7 +350,7 @@ const Dashboard = () => {
         <Col xs={24} sm={12} md={6}>
           <Card className="glass-panel" style={{ height: '100%' }}>
             <Statistic
-              title="Pending Payments"
+              title={t('pending_payments')}
               value={d.pending_payments}
               precision={2}
               prefix="₹"
@@ -366,7 +368,7 @@ const Dashboard = () => {
         <Col xs={24} md={12}>
           <Card
             className="glass-panel"
-            title="Today's Banana Rates"
+            title={t('todays_rates')}
             style={{ height: '100%' }}
           >
             <Table
@@ -383,7 +385,7 @@ const Dashboard = () => {
         <Col xs={24} md={12}>
           <Card
             className="glass-panel"
-            title="Quick Utilities"
+            title={t('quick_utilities')}
             style={{ height: '100%' }}
           >
             <Row gutter={[16, 16]}>
@@ -404,7 +406,7 @@ const Dashboard = () => {
                   }}
                   onClick={() => navigate('/create-invoice')}
                 >
-                  <Text style={{ fontWeight: 600 }}>Create Invoice</Text>
+                  <Text style={{ fontWeight: 600 }}>{t('create_invoice')}</Text>
                 </Button>
               </Col>
               <Col span={12}>
@@ -424,7 +426,7 @@ const Dashboard = () => {
                   }}
                   onClick={() => navigate('/history')}
                 >
-                  <Text style={{ fontWeight: 600 }}>Billing History</Text>
+                  <Text style={{ fontWeight: 600 }}>{t('billing_history')}</Text>
                 </Button>
               </Col>
               <Col span={12}>
@@ -444,7 +446,7 @@ const Dashboard = () => {
                   }}
                   onClick={() => navigate('/reports')}
                 >
-                  <Text style={{ fontWeight: 600 }}>Reports Panel</Text>
+                  <Text style={{ fontWeight: 600 }}>{t('reports')}</Text>
                 </Button>
               </Col>
               <Col span={12}>
@@ -464,7 +466,7 @@ const Dashboard = () => {
                   }}
                   onClick={() => navigate('/profile')}
                 >
-                  <Text style={{ fontWeight: 600 }}>Profile Settings</Text>
+                  <Text style={{ fontWeight: 600 }}>{t('business_profile')}</Text>
                 </Button>
               </Col>
             </Row>

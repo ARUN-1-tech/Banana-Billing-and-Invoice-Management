@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Steps, Form, Input, Button, Card, Table, InputNumber, Select,
-  Row, Col, Statistic, Alert, Space, Divider, Typography, Tag, Modal, Spin
+import { 
+  Card, Steps, Form, Input, Button, Row, Col, Divider, Select, Table, InputNumber, Space, Statistic, Tag, Modal, Typography, Spin 
 } from 'antd';
 import {
-  UserOutlined, GlobalOutlined, PhoneOutlined, FieldTimeOutlined,
-  PlusOutlined, DeleteOutlined, CalculatorOutlined, CheckCircleOutlined,
-  PrinterOutlined, DownloadOutlined, SaveOutlined, DashboardOutlined, ShareAltOutlined
+  UserOutlined, PhoneOutlined, GlobalOutlined, FieldTimeOutlined,
+  PlusOutlined, DeleteOutlined, CalculatorOutlined, CheckOutlined,
+  PrinterOutlined, DownloadOutlined, SaveOutlined, DashboardOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -14,11 +14,13 @@ import confetti from 'canvas-confetti';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
 const CreateInvoice = () => {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
@@ -58,8 +60,6 @@ const CreateInvoice = () => {
   // Saved result state
   const [saving, setSaving] = useState(false);
   const [savedInvoice, setSavedInvoice] = useState(null);
-  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
-  const [sharing, setSharing] = useState(false);
 
   const invoicePrintRef = useRef(null);
 
@@ -91,23 +91,23 @@ const CreateInvoice = () => {
     let net = 0.0;
     let totalAmt = 0.0;
 
-    weighingTables.forEach(t => {
+    weighingTables.forEach(t_val => {
       let tablePieces = 0;
       let tableGross = 0.0;
       
-      t.entries.forEach(e => {
+      t_val.entries.forEach(e => {
         tablePieces += (e.piece_count || 0);
         tableGross += (e.weight ? parseFloat(e.weight) : 0.0);
       });
 
-      if (t.billing_method === 'piece') {
-        const tableSubtotal = tablePieces * (t.rate || 0.0);
+      if (t_val.billing_method === 'piece') {
+        const tableSubtotal = tablePieces * (t_val.rate || 0.0);
         pieces += tablePieces;
         totalAmt += tableSubtotal;
       } else {
-        const tableRemov = tablePieces * (t.removable_weight_per_piece || 0.0);
+        const tableRemov = tablePieces * (t_val.removable_weight_per_piece || 0.0);
         const tableNet = Math.max(0.0, tableGross - tableRemov);
-        const tableSubtotal = tableNet * (t.rate || 0.0);
+        const tableSubtotal = tableNet * (t_val.rate || 0.0);
 
         pieces += tablePieces;
         gross += tableGross;
@@ -137,7 +137,7 @@ const CreateInvoice = () => {
     }
   }, [weighingTables, paidAmount]);
 
-  const uniqueBananaTypes = Array.from(new Set(weighingTables.map(t => t.banana_type ? t.banana_type + (t.billing_method === 'piece' ? ' (Piece)' : '') : '').filter(Boolean))).join(', ');
+  const uniqueBananaTypes = Array.from(new Set(weighingTables.map(t_val => t_val.banana_type ? t_val.banana_type + (t_val.billing_method === 'piece' ? ' (Piece)' : '') : '').filter(Boolean))).join(', ');
 
   // Step 1 Finish
   const handleCustomerSubmit = (values) => {
@@ -150,159 +150,205 @@ const CreateInvoice = () => {
     setWeighingTables([
       ...weighingTables,
       {
-        id: Date.now() + Math.random(),
+        id: Date.now(),
         banana_type: undefined,
         rate: undefined,
         billing_method: 'weight',
         removable_weight_per_piece: 0.0,
         entries: [
-          { key: 1, serial_no: 1, piece_count: initialPieceCount, weight: null }
+          { key: 1, serial_no: 1, piece_count: 10, weight: null }
         ]
       }
     ]);
   };
 
-  // Remove a variety table
+  // Delete a variety table
   const removeWeighingTable = (tableId) => {
-    if (weighingTables.length === 1) return;
-    setWeighingTables(weighingTables.filter(t => t.id !== tableId));
+    setWeighingTables(weighingTables.filter(t_val => t_val.id !== tableId));
   };
 
-  // Row update actions
-  const updateRowField = (tableId, rowKey, field, value) => {
-    setWeighingTables(weighingTables.map(t => {
-      if (t.id === tableId) {
-        const updatedEntries = t.entries.map(e => 
-          e.key === rowKey ? { ...e, [field]: value } : e
-        );
-        return { ...t, entries: updatedEntries };
-      }
-      return t;
-    }));
-  };
-
-  // Add row to table
+  // Add a row to a specific table
   const addRowToTable = (tableId) => {
-    setWeighingTables(weighingTables.map(t => {
-      if (t.id === tableId) {
-        const nextKey = t.entries.length > 0 ? Math.max(...t.entries.map(e => e.key)) + 1 : 1;
-        const nextSNo = t.entries.length + 1;
-        const defaultPieceCount = t.entries.length > 0 ? (t.entries[0].piece_count || initialPieceCount) : initialPieceCount;
+    const targetTable = weighingTables.find(t_val => t_val.id === tableId);
+    if (!targetTable) return;
+
+    // VALIDATION: If weight billing method, check if any active row's weight is 0 or empty
+    if (targetTable.billing_method === 'weight') {
+      const hasEmptyOrZeroWeight = targetTable.entries.some(e => e.weight === null || e.weight === undefined || parseFloat(e.weight) === 0);
+      if (hasEmptyOrZeroWeight) {
+        Modal.error({
+          title: t('logic_error_title'),
+          content: t('zero_weight_error'),
+          borderRadius: 12
+        });
+        return;
+      }
+    }
+
+    const nextKey = targetTable.entries.length > 0 
+      ? Math.max(...targetTable.entries.map(e => e.key)) + 1 
+      : 1;
+    const nextSerial = targetTable.entries.length + 1;
+
+    const newRow = { key: nextKey, serial_no: nextSerial, piece_count: 10, weight: null };
+
+    setWeighingTables(weighingTables.map(t_val => {
+      if (t_val.id === tableId) {
         return {
-          ...t,
-          entries: [
-            ...t.entries,
-            { key: nextKey, serial_no: nextSNo, piece_count: defaultPieceCount, weight: null }
-          ]
+          ...t_val,
+          entries: [...t_val.entries, newRow]
         };
       }
-      return t;
+      return t_val;
     }));
   };
 
-  // Delete row from table
+  // Delete a row from a specific table
   const deleteRowFromTable = (tableId, rowKey) => {
-    setWeighingTables(weighingTables.map(t => {
-      if (t.id === tableId) {
-        if (t.entries.length === 1) return t;
-        const filtered = t.entries.filter(e => e.key !== rowKey);
-        const reindexed = filtered.map((e, idx) => ({
+    setWeighingTables(weighingTables.map(t_val => {
+      if (t_val.id === tableId) {
+        const filtered = t_val.entries.filter(e => e.key !== rowKey);
+        // Re-calculate serial numbers
+        const updated = filtered.map((e, idx) => ({
           ...e,
-          key: idx + 1,
           serial_no: idx + 1
         }));
-        return { ...t, entries: reindexed };
+        return {
+          ...t_val,
+          entries: updated
+        };
       }
-      return t;
+      return t_val;
     }));
   };
 
-  // Submit weighing tables
+  // Update field value in row
+  const updateRowField = (tableId, rowKey, field, value) => {
+    setWeighingTables(weighingTables.map(t_val => {
+      if (t_val.id === tableId) {
+        const updatedEntries = t_val.entries.map(e => {
+          if (e.key === rowKey) {
+            return { ...e, [field]: value };
+          }
+          return e;
+        });
+        return {
+          ...t_val,
+          entries: updatedEntries
+        };
+      }
+      return t_val;
+    }));
+  };
+
+  // Step 2 Proceed
   const handleWeighingSubmit = () => {
-    const missingVariety = weighingTables.some(t => !t.banana_type);
+    // 1. Verify all sections have a selected Banana Variety
+    const missingVariety = weighingTables.some(t_val => !t_val.banana_type);
     if (missingVariety) {
-      Modal.warning({
-        title: 'Selection Required',
-        content: 'Please specify the Banana Type variety for all active weighing tables.',
+      Modal.error({
+        title: t('logic_error_title'),
+        content: 'Please select a Banana Variety type for all variety segments.',
         borderRadius: 12
       });
       return;
     }
-    const missingRate = weighingTables.some(t => t.rate === undefined || t.rate === null);
+
+    // 2. Verify all sections have a valid rate set
+    const missingRate = weighingTables.some(t_val => t_val.rate === undefined || t_val.rate === null || t_val.rate < 0);
     if (missingRate) {
-      Modal.warning({
-        title: 'Rate Required',
-        content: 'Please specify the Rate for all active weighing tables.',
+      Modal.error({
+        title: t('logic_error_title'),
+        content: 'Please configure a valid rate for all banana variety tables.',
         borderRadius: 12
       });
       return;
     }
+
+    // 3. Row level validations (weight/pieces should be > 0 and not empty)
+    for (const t_val of weighingTables) {
+      if (t_val.billing_method === 'weight') {
+        const invalidWeight = t_val.entries.some(e => e.weight === null || e.weight === undefined || parseFloat(e.weight) <= 0);
+        if (invalidWeight) {
+          Modal.error({
+            title: t('logic_error_title'),
+            content: `${t('invalid_weight_msg')} (${t_val.banana_type})`,
+            borderRadius: 12
+          });
+          return;
+        }
+      }
+
+      const invalidPieces = t_val.entries.some(e => e.piece_count === null || e.piece_count === undefined || parseInt(e.piece_count) <= 0);
+      if (invalidPieces) {
+        Modal.error({
+          title: t('logic_error_title'),
+          content: `${t('invalid_pieces_msg')} (${t_val.banana_type})`,
+          borderRadius: 12
+        });
+        return;
+      }
+    }
+
     setCurrentStep(2);
   };
 
-  // Save full invoice to backend
+  // Step 4 Settle & Save API Action
   const handleSaveInvoice = async () => {
     setSaving(true);
     try {
-      // 1. Create or Find Customer
+      // 1. Create/Ensure Customer on Backend
       const custResponse = await axios.post('/customers/', {
         name: customerInfo.customer_name,
-        place: customerInfo.customer_place,
         phone: customerInfo.customer_phone,
-        banana_type: uniqueBananaTypes
+        place: customerInfo.customer_place
       });
       const customerId = custResponse.data.id;
 
-      // Prepare weight entries flat list
-      let serialIndex = 1;
-      const flatEntries = weighingTables.flatMap(t => 
-        t.entries.map(e => ({
-          serial_no: serialIndex++,
-          banana_type: t.banana_type + (t.billing_method === 'piece' ? ' (Piece)' : ''),
-          rate: t.rate || 0.0,
-          piece_count: e.piece_count,
-          weight: t.billing_method === 'piece' ? 0.0 : (e.weight || 0.0)
-        }))
-      );
+      // 2. Format weight entries payload
+      const formattedEntries = [];
+      weighingTables.forEach(t_val => {
+        t_val.entries.forEach(e => {
+          formattedEntries.push({
+            banana_type: t_val.banana_type,
+            billing_method: t_val.billing_method,
+            rate: t_val.rate,
+            serial_no: e.serial_no,
+            piece_count: e.piece_count,
+            weight: t_val.billing_method === 'piece' ? 0.0 : e.weight
+          });
+        });
+      });
 
-      // 2. Prepare payload
+      // 3. Save invoice complete record
       const invoicePayload = {
         customer: customerId,
+        date: form.getFieldValue('date'),
+        time: form.getFieldValue('time'),
+        removable_weight_per_piece: weighingTables[0]?.removable_weight_per_piece || 0.0,
         total_pieces: totalPieces,
-        gross_weight: totalGrossWeight,
-        removable_weight_per_piece: weighingTables[0]?.removable_weight_per_piece || 0.0, // fallback
+        total_gross_weight: totalGrossWeight,
         total_removable_weight: totalRemovableWeight,
         net_weight: netWeight,
-        rate: null,
         final_amount: finalAmount,
-        payment_status: paymentStatus,
-        weight_entries: flatEntries,
-        payments: [
-          {
-            payment_mode: paymentMode,
-            paid_amount: paidAmount,
-            balance_amount: balanceAmount,
-            status: paymentStatus
-          }
-        ]
+        weight_entries: formattedEntries,
+        payment_mode: paymentMode,
+        paid_amount: paidAmount
       };
 
-      // 3. Save Invoice
       const invResponse = await axios.post('/invoices/', invoicePayload);
       setSavedInvoice(invResponse.data);
-      
       confetti({
         particleCount: 150,
         spread: 80,
         origin: { y: 0.6 }
       });
-
       setCurrentStep(4);
     } catch (err) {
       console.error('Error saving invoice', err);
       Modal.error({
-        title: 'Error Saving Invoice',
-        content: err.response?.data ? JSON.stringify(err.response.data) : 'Network error. Could not write to PostgreSQL.',
+        title: 'Invoice Save Failure',
+        content: err.response?.data?.error || 'Database connection error.',
         borderRadius: 12
       });
     } finally {
@@ -310,11 +356,11 @@ const CreateInvoice = () => {
     }
   };
 
-  // PDF Export
+  // PDF Download Action
   const downloadPDF = async () => {
     const element = invoicePrintRef.current;
     if (!element) return;
-    
+
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -324,107 +370,40 @@ const CreateInvoice = () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
+
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`Invoice_${savedInvoice?.invoice_no || 'BANANA'}.pdf`);
+      pdf.save(`Invoice_${savedInvoice?.invoice_no}.pdf`);
     } catch (err) {
       console.error('Error rendering PDF', err);
     }
   };
 
-  // Print Invoice
+  // Print invoice helper
   const printInvoice = () => {
     window.print();
   };
 
-  // Share invoice (uses native navigator.share if possible, falls back to custom options)
-  const shareInvoice = async () => {
-    const element = invoicePrintRef.current;
-    if (!element) return;
-    
-    setSharing(true);
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      
-      const pdfBlob = pdf.output('blob');
-      const filename = `Invoice_${savedInvoice?.invoice_no || 'BANANA'}.pdf`;
-      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-      
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Invoice #${savedInvoice?.invoice_no}`,
-          text: `Please find attached the banana purchase invoice from ${user?.business_name || 'Banana Commission Agent'}.`,
-        });
-      } else {
-        // Fallback: Open sharing options Modal
-        setIsShareModalVisible(true);
-      }
-    } catch (err) {
-      console.error('Error in Web Share API', err);
-      // Fallback: Open sharing options Modal
-      setIsShareModalVisible(true);
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const handleWhatsAppShare = () => {
-    const phone = customerInfo?.customer_phone || '';
-    let formattedPhone = phone.replace(/\D/g, '');
-    if (formattedPhone.length === 10) {
-      formattedPhone = '91' + formattedPhone;
-    }
-    
-    const textMessage = `Hello *${customerInfo?.customer_name}*,\n\nHere is your banana billing invoice summary from *${user?.business_name || 'Banana Agent'}*:\n\n📄 *Invoice No:* ${savedInvoice?.invoice_no}\n📅 *Date:* ${savedInvoice?.date}\n🍌 *Varieties:* ${uniqueBananaTypes}\n🔢 *Total Pieces:* ${totalPieces} Qty\n⚖️ *Net Weight:* ${netWeight.toFixed(2)} Kg\n💰 *Final Amount:* ₹${finalAmount.toFixed(2)}\n💸 *Balance Due:* ₹${balanceAmount.toFixed(2)}\n💳 *Status:* ${paymentStatus.toUpperCase().replace('_', ' ')}\n\nThank you for your business!`;
-    
-    const encodedText = encodeURIComponent(textMessage);
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
-    setIsShareModalVisible(false);
-  };
-
-  const copyReceiptToClipboard = () => {
-    const textMessage = `Hello ${customerInfo?.customer_name},\n\nHere is your banana billing invoice summary from ${user?.business_name || 'Banana Agent'}:\n\nInvoice No: ${savedInvoice?.invoice_no}\nDate: ${savedInvoice?.date}\nVarieties: ${uniqueBananaTypes}\nTotal Pieces: ${totalPieces} Qty\nNet Weight: ${netWeight.toFixed(2)} Kg\nFinal Amount: ₹${finalAmount.toFixed(2)}\nBalance Due: ₹${balanceAmount.toFixed(2)}\nStatus: ${paymentStatus.toUpperCase().replace('_', ' ')}\n\nThank you for your business!`;
-    
-    navigator.clipboard.writeText(textMessage);
-    Modal.success({
-      title: 'Receipt Copied',
-      content: 'Billing receipt text copied to clipboard successfully!',
-      borderRadius: 12
-    });
-    setIsShareModalVisible(false);
-  };
-
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-      <Card className="glass-panel" style={{ marginBottom: '24px', padding: '10px 0' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      {/* STEPS TRAIL CARD */}
+      <Card className="glass-panel" style={{ marginBottom: '24px', padding: '12px 0' }}>
         <Steps
           current={currentStep}
           responsive
           style={{ padding: '0 20px' }}
           items={[
-            { title: 'Customer Details' },
-            { title: 'Weighing Terminals' },
-            { title: 'Calculations' },
-            { title: 'Payments' },
-            { title: 'Issued Invoice' }
+            { title: t('step_customer') },
+            { title: t('step_weighing') },
+            { title: t('step_calculations') },
+            { title: t('step_payments') },
+            { title: t('step_invoice') }
           ]}
         />
       </Card>
 
       {/* STEP 1: CUSTOMER DETAILS */}
       {currentStep === 0 && (
-        <Card className="glass-panel" title="Step 1: Enter Customer Credentials">
+        <Card className="glass-panel" title={`${t('step_customer')}`}>
           <Form
             form={form}
             layout="vertical"
@@ -435,19 +414,19 @@ const CreateInvoice = () => {
               <Col xs={24} md={12}>
                 <Form.Item
                   name="customer_name"
-                  label="Customer Name"
+                  label={t('customer_name')}
                   rules={[{ required: true, message: 'Customer Name is required!' }]}
                 >
-                  <Input prefix={<UserOutlined />} placeholder="Enter name" />
+                  <Input prefix={<UserOutlined />} placeholder={t('customer_name_placeholder')} />
                 </Form.Item>
               </Col>
               <Col xs={24} md={12}>
                 <Form.Item
                   name="customer_phone"
-                  label="Customer Phone Number"
+                  label={t('customer_phone')}
                   rules={[{ required: true, message: 'Phone number is required!' }]}
                 >
-                  <Input prefix={<PhoneOutlined />} placeholder="Enter phone" />
+                  <Input prefix={<PhoneOutlined />} placeholder={t('customer_phone_placeholder')} />
                 </Form.Item>
               </Col>
             </Row>
@@ -456,22 +435,22 @@ const CreateInvoice = () => {
               <Col xs={24}>
                 <Form.Item
                   name="customer_place"
-                  label="Customer Place / Address"
+                  label={t('customer_place')}
                   rules={[{ required: true, message: 'Customer native place is required!' }]}
                 >
-                  <Input prefix={<GlobalOutlined />} placeholder="Enter native place" />
+                  <Input prefix={<GlobalOutlined />} placeholder={t('customer_place_placeholder')} />
                 </Form.Item>
               </Col>
             </Row>
 
             <Row gutter={16}>
               <Col xs={24} sm={12}>
-                <Form.Item name="date" label="Date (Auto Generated)">
+                <Form.Item name="date" label={t('date_auto')}>
                   <Input prefix={<FieldTimeOutlined />} disabled />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item name="time" label="Time (Auto Generated)">
+                <Form.Item name="time" label={t('time_auto')}>
                   <Input prefix={<FieldTimeOutlined />} disabled />
                 </Form.Item>
               </Col>
@@ -481,7 +460,7 @@ const CreateInvoice = () => {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Button type="primary" htmlType="submit" className="btn-primary" icon={<CalculatorOutlined />}>
-                Proceed to Weighing
+                {t('proceed_weighing')}
               </Button>
             </div>
           </Form>
@@ -497,14 +476,14 @@ const CreateInvoice = () => {
           {weighingTables.map((table, tIdx) => {
             const rowColumns = [
               {
-                title: 'S.No',
+                title: t('sno'),
                 dataIndex: 'serial_no',
                 key: 'serial_no',
                 width: 70,
                 render: (text) => <Text style={{ fontWeight: 600 }}>{text}</Text>
               },
               {
-                title: table.billing_method === 'piece' ? 'Banana Pieces (Qty)' : 'Piece Count / Bunches',
+                title: table.billing_method === 'piece' ? t('pieces_qty') : t('pieces_bunches'),
                 dataIndex: 'piece_count',
                 key: 'piece_count',
                 render: (text, record) => (
@@ -518,7 +497,7 @@ const CreateInvoice = () => {
               },
               ...(table.billing_method === 'weight' ? [
                 {
-                  title: 'Weight (Kg)',
+                  title: t('weight_kg'),
                   dataIndex: 'weight',
                   key: 'weight',
                   render: (text, record) => (
@@ -534,7 +513,7 @@ const CreateInvoice = () => {
                 }
               ] : []),
               {
-                title: 'Action',
+                title: t('action'),
                 key: 'action',
                 width: 80,
                 render: (_, record) => (
@@ -558,7 +537,7 @@ const CreateInvoice = () => {
                 style={{ marginBottom: '24px' }}
                 title={
                   <span style={{ fontWeight: 700 }}>
-                    Banana Variety weighing Section #{tIdx + 1}
+                    {t('variety_type')} - #{tIdx + 1}
                   </span>
                 }
                 extra={
@@ -572,13 +551,13 @@ const CreateInvoice = () => {
                 {/* Table configs header */}
                 <Row gutter={16} style={{ marginBottom: '16px' }}>
                   <Col xs={24} md={showRemovableWeight ? 6 : 8}>
-                    <Form.Item label="Banana Variety Type" required>
+                    <Form.Item label={t('variety_type')} required>
                       <Select
                         placeholder="Select variety"
                         value={table.banana_type}
                         onChange={(val) => {
-                          setWeighingTables(weighingTables.map(t => 
-                            t.id === table.id ? { ...t, banana_type: val, rate: undefined } : t
+                          setWeighingTables(weighingTables.map(t_val => 
+                            t_val.id === table.id ? { ...t_val, banana_type: val, rate: undefined } : t_val
                           ));
                         }}
                         style={{ width: '100%' }}
@@ -590,12 +569,12 @@ const CreateInvoice = () => {
                     </Form.Item>
                   </Col>
                   <Col xs={12} md={showRemovableWeight ? 6 : 8}>
-                    <Form.Item label="Billing Unit" required>
+                    <Form.Item label={t('billing_unit')} required>
                       <Select
                         value={table.billing_method}
                         onChange={(val) => {
-                          setWeighingTables(weighingTables.map(t => 
-                            t.id === table.id ? { ...t, billing_method: val } : t
+                          setWeighingTables(weighingTables.map(t_val => 
+                            t_val.id === table.id ? { ...t_val, billing_method: val } : t_val
                           ));
                         }}
                         style={{ width: '100%' }}
@@ -606,14 +585,14 @@ const CreateInvoice = () => {
                     </Form.Item>
                   </Col>
                   <Col xs={12} md={showRemovableWeight ? 6 : 8}>
-                    <Form.Item label={`Rate per ${table.billing_method === 'piece' ? 'Piece' : 'Kg'} (Rs.)`} required>
+                    <Form.Item label={`${t('rate_per')} ${table.billing_method === 'piece' ? 'Piece' : 'Kg'} (Rs.)`} required>
                       <InputNumber
                         min={0.0}
                         placeholder="0.00"
                         value={table.rate}
                         onChange={(val) => {
-                          setWeighingTables(weighingTables.map(t => 
-                            t.id === table.id ? { ...t, rate: val } : t
+                          setWeighingTables(weighingTables.map(t_val => 
+                            t_val.id === table.id ? { ...t_val, rate: val } : t_val
                           ));
                         }}
                         style={{ width: '100%' }}
@@ -623,14 +602,14 @@ const CreateInvoice = () => {
                   </Col>
                   {showRemovableWeight && (
                     <Col xs={24} md={6}>
-                      <Form.Item label="Removable weight per Piece (Kg)">
+                      <Form.Item label={t('removable_wt')}>
                         <InputNumber
                           min={0.0}
                           step={0.1}
                           value={table.removable_weight_per_piece}
                           onChange={(val) => {
-                            setWeighingTables(weighingTables.map(t => 
-                              t.id === table.id ? { ...t, removable_weight_per_piece: val || 0.0 } : t
+                            setWeighingTables(weighingTables.map(t_val => 
+                              t_val.id === table.id ? { ...t_val, removable_weight_per_piece: val || 0.0 } : t_val
                             ));
                           }}
                           style={{ width: '100%' }}
@@ -655,7 +634,7 @@ const CreateInvoice = () => {
                   icon={<PlusOutlined />}
                   onClick={() => addRowToTable(table.id)}
                 >
-                  Add Row to this variety table
+                  {t('add_row')}
                 </Button>
               </Card>
             );
@@ -668,17 +647,17 @@ const CreateInvoice = () => {
             onClick={addWeighingTable}
             style={{ marginBottom: '24px', height: '48px', borderStyle: 'solid', borderWidth: '2px', borderColor: '#f6b93b', color: '#f6b93b' }}
           >
-            Add another banana variety table (+ Group)
+            {t('add_variety')}
           </Button>
 
           <Divider />
 
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <Button onClick={() => setCurrentStep(0)}>
-              Back
+              {t('back')}
             </Button>
             <Button type="primary" onClick={handleWeighingSubmit} className="btn-primary" icon={<CalculatorOutlined />}>
-              Process Calculations
+              {t('proceed_calc')}
             </Button>
           </div>
         </Form>
@@ -688,36 +667,36 @@ const CreateInvoice = () => {
       {currentStep === 2 && (
         <Card
           className="glass-panel"
-          title="Step 3: Calculation & Weight Removals"
+          title={`${t('step_calculations')}`}
           extra={<Text type="secondary">{customerInfo?.customer_name} | {uniqueBananaTypes}</Text>}
         >
           {/* Variety subtotal breakdown list */}
           <div style={{ marginBottom: '24px' }}>
-            <Title level={5} style={{ fontWeight: 700, marginBottom: '12px' }}>Deductions & Rates breakdown per variety</Title>
-            {weighingTables.map((t, idx) => {
+            <Title level={5} style={{ fontWeight: 700, marginBottom: '12px' }}>{t('breakdown_title')}</Title>
+            {weighingTables.map((t_val, idx) => {
               let pcs = 0;
               let gross = 0.0;
-              t.entries.forEach(e => {
+              t_val.entries.forEach(e => {
                 pcs += (e.piece_count || 0);
                 gross += (e.weight ? parseFloat(e.weight) : 0.0);
               });
 
-              if (t.billing_method === 'piece') {
-                const subtotal = pcs * (parseFloat(t.rate) || 0.0);
+              if (t_val.billing_method === 'piece') {
+                const subtotal = pcs * (parseFloat(t_val.rate) || 0.0);
                 return (
-                  <div key={t.id} style={{ marginBottom: '12px', padding: '12px 16px', background: 'rgba(140, 122, 230, 0.06)', borderRadius: '10px', border: '1px solid rgba(140, 122, 230, 0.15)' }}>
+                  <div key={t_val.id} style={{ marginBottom: '12px', padding: '12px 16px', background: 'rgba(140, 122, 230, 0.06)', borderRadius: '10px', border: '1px solid rgba(140, 122, 230, 0.15)' }}>
                     <Row align="middle" justify="space-between">
                       <Col span={8}>
-                        <Text strong style={{ fontSize: '15px', color: '#8c7ae6' }}>{t.banana_type} (Piece)</Text>
-                        <div style={{ fontSize: '11px', opacity: 0.6 }}>Rate: ₹{t.rate}/Piece</div>
+                        <Text strong style={{ fontSize: '15px', color: '#8c7ae6' }}>{t_val.banana_type} (Piece)</Text>
+                        <div style={{ fontSize: '11px', opacity: 0.6 }}>Rate: ₹{t_val.rate}/Piece</div>
                       </Col>
                       <Col span={12}>
                         <div style={{ fontSize: '12px' }}>
-                          <Text type="secondary">Total Quantity:</Text> <Text strong>{pcs} Pieces</Text>
+                          <Text type="secondary">{t('total_pieces')}:</Text> <Text strong>{pcs} Pieces</Text>
                         </div>
                       </Col>
                       <Col span={4} style={{ textAlign: 'right' }}>
-                        <Text type="secondary">Subtotal:</Text>
+                        <Text type="secondary">{t('subtotal')}:</Text>
                         <div style={{ fontWeight: 700, fontSize: '14px', color: '#e5a92c' }}>₹{subtotal.toFixed(2)}</div>
                       </Col>
                     </Row>
@@ -725,35 +704,35 @@ const CreateInvoice = () => {
                 );
               }
 
-              const remov = pcs * t.removable_weight_per_piece;
+              const remov = pcs * t_val.removable_weight_per_piece;
               const net = Math.max(0.0, gross - remov);
-              const subtotal = net * (parseFloat(t.rate) || 0.0);
+              const subtotal = net * (parseFloat(t_val.rate) || 0.0);
 
               return (
-                <div key={t.id} style={{ marginBottom: '12px', padding: '12px 16px', background: 'rgba(140, 122, 230, 0.06)', borderRadius: '10px', border: '1px solid rgba(140, 122, 230, 0.15)' }}>
+                <div key={t_val.id} style={{ marginBottom: '12px', padding: '12px 16px', background: 'rgba(140, 122, 230, 0.06)', borderRadius: '10px', border: '1px solid rgba(140, 122, 230, 0.15)' }}>
                   <Row align="middle" justify="space-between">
                     <Col span={5}>
-                      <Text strong style={{ fontSize: '15px', color: '#8c7ae6' }}>{t.banana_type || 'Variety'}</Text>
-                      <div style={{ fontSize: '11px', opacity: 0.6 }}>Rate: ₹{t.rate}/Kg</div>
+                      <Text strong style={{ fontSize: '15px', color: '#8c7ae6' }}>{t_val.banana_type || 'Variety'}</Text>
+                      <div style={{ fontSize: '11px', opacity: 0.6 }}>Rate: ₹{t_val.rate}/Kg</div>
                     </Col>
                     <Col span={14}>
                       <Row gutter={8} style={{ fontSize: '12px' }}>
                         <Col span={5}>
-                          <Text type="secondary">Pieces:</Text> <Text strong>{pcs}</Text>
+                          <Text type="secondary">{t('pieces_qty').split(' ')[0]}:</Text> <Text strong>{pcs}</Text>
                         </Col>
                         <Col span={6}>
-                          <Text type="secondary">Gross:</Text> <Text strong>{gross.toFixed(2)} Kg</Text>
+                          <Text type="secondary">{t('gross_weight').split(' ')[0]}:</Text> <Text strong>{gross.toFixed(2)} Kg</Text>
                         </Col>
                         <Col span={7}>
-                          <Text type="secondary">Removable:</Text> <Text strong>{remov.toFixed(2)} Kg</Text>
+                          <Text type="secondary">{t('removable_weight').split(' ')[0]}:</Text> <Text strong>{remov.toFixed(2)} Kg</Text>
                         </Col>
                         <Col span={6}>
-                          <Text type="secondary">Net Weight:</Text> <Text strong>{net.toFixed(2)} Kg</Text>
+                          <Text type="secondary">{t('net_weight').split(' ')[0]}:</Text> <Text strong>{net.toFixed(2)} Kg</Text>
                         </Col>
                       </Row>
                     </Col>
                     <Col span={5} style={{ textAlign: 'right' }}>
-                      <Text type="secondary">Subtotal:</Text>
+                      <Text type="secondary">{t('subtotal')}:</Text>
                       <div style={{ fontWeight: 700, fontSize: '14px', color: '#e5a92c' }}>₹{subtotal.toFixed(2)}</div>
                     </Col>
                   </Row>
@@ -767,27 +746,27 @@ const CreateInvoice = () => {
           <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
             <Col xs={12} sm={8}>
               <Card size="small" style={{ background: 'rgba(0,0,0,0.01)' }}>
-                <Statistic title="Total Pieces" value={totalPieces} suffix="Qty" />
+                <Statistic title={t('total_pieces')} value={totalPieces} suffix="Qty" />
               </Card>
             </Col>
             <Col xs={12} sm={8}>
               <Card size="small" style={{ background: 'rgba(0,0,0,0.01)' }}>
-                <Statistic title="Total Gross Weight" value={totalGrossWeight} suffix="Kg" />
+                <Statistic title={t('total_gross')} value={totalGrossWeight} suffix="Kg" />
               </Card>
             </Col>
             <Col xs={12} sm={8}>
               <Card size="small" style={{ background: 'rgba(0,0,0,0.01)' }}>
-                <Statistic title="Total Removable" value={totalRemovableWeight} precision={2} suffix="Kg" />
-              </Card>
-            </Col>
-            <Col xs={12} sm={12}>
-              <Card size="small" style={{ background: 'rgba(0,0,0,0.01)', border: '1px solid rgba(246, 185, 59, 0.4)' }}>
-                <Statistic title="Final Amount" value={finalAmount} precision={2} prefix="₹" valueStyle={{ color: '#f6b93b', fontWeight: 700 }} />
+                <Statistic title={t('total_removable')} value={totalRemovableWeight} precision={2} suffix="Kg" />
               </Card>
             </Col>
             <Col xs={12} sm={12}>
               <Card size="small" style={{ background: 'rgba(0,0,0,0.01)', border: '1px solid rgba(46, 204, 113, 0.4)' }}>
-                <Statistic title="Net Weight" value={netWeight} precision={2} suffix="Kg" valueStyle={{ color: '#2ecc71', fontWeight: 700 }} />
+                <Statistic title={t('net_weight')} value={netWeight} precision={2} suffix="Kg" valueStyle={{ color: '#2ecc71', fontWeight: 700 }} />
+              </Card>
+            </Col>
+            <Col xs={12} sm={12}>
+              <Card size="small" style={{ background: 'rgba(0,0,0,0.01)', border: '1px solid rgba(246, 185, 59, 0.4)' }}>
+                <Statistic title={t('final_amount')} value={finalAmount} precision={2} prefix="₹" valueStyle={{ color: '#f6b93b', fontWeight: 700 }} />
               </Card>
             </Col>
           </Row>
@@ -796,10 +775,10 @@ const CreateInvoice = () => {
 
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <Button onClick={() => setCurrentStep(1)}>
-              Back
+              {t('back')}
             </Button>
             <Button type="primary" onClick={() => setCurrentStep(3)} className="btn-primary" icon={<CalculatorOutlined />}>
-              Proceed to Payments
+              {t('proceed_payments')}
             </Button>
           </div>
         </Card>
@@ -809,13 +788,13 @@ const CreateInvoice = () => {
       {currentStep === 3 && (
         <Card
           className="glass-panel"
-          title="Step 4: Settle Ledger & Payment Status"
-          extra={<Text type="secondary">Total Bill: ₹{finalAmount.toFixed(2)}</Text>}
+          title={`${t('step_payments')}`}
+          extra={<Text type="secondary">{t('final_amount')}: ₹{finalAmount.toFixed(2)}</Text>}
         >
           <Form layout="vertical" size="large">
             <Row gutter={16}>
               <Col xs={24} sm={12}>
-                <Form.Item label="Payment Mode">
+                <Form.Item label={t('payment_mode')}>
                   <Select value={paymentMode} onChange={(val) => setPaymentMode(val)} style={{ width: '100%' }}>
                     <Option value="cash">Cash</Option>
                     <Option value="upi">UPI</Option>
@@ -824,7 +803,7 @@ const CreateInvoice = () => {
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label="Paid Amount (Rs.)">
+                <Form.Item label={t('paid_amount')}>
                   <InputNumber
                     min={0.0}
                     max={finalAmount}
@@ -839,13 +818,13 @@ const CreateInvoice = () => {
 
             <Row gutter={16} style={{ marginTop: '16px' }}>
               <Col xs={12}>
-                <Statistic title="Balance Amount Due" value={balanceAmount} precision={2} prefix="₹" valueStyle={{ color: balanceAmount > 0 ? '#e74c3c' : '#2ecc71', fontWeight: 700 }} />
+                <Statistic title={t('balance_due')} value={balanceAmount} precision={2} prefix="₹" valueStyle={{ color: balanceAmount > 0 ? '#e74c3c' : '#2ecc71', fontWeight: 700 }} />
               </Col>
               <Col xs={12}>
-                <Text style={{ display: 'block', marginBottom: '8px', opacity: 0.6 }}>Payment Ledger Status</Text>
-                {paymentStatus === 'settled' && <Tag color="success" style={{ fontSize: '14px', padding: '6px 12px' }}>SETTLED</Tag>}
-                {paymentStatus === 'partially_settled' && <Tag color="warning" style={{ fontSize: '14px', padding: '6px 12px' }}>PARTIALLY SETTLED</Tag>}
-                {paymentStatus === 'not_settled' && <Tag color="error" style={{ fontSize: '14px', padding: '6px 12px' }}>NOT SETTLED</Tag>}
+                <Text style={{ display: 'block', marginBottom: '8px', opacity: 0.6 }}>{t('ledger_status')}</Text>
+                {paymentStatus === 'settled' && <Tag color="success" style={{ fontSize: '14px', padding: '6px 12px' }}>{t('settled')}</Tag>}
+                {paymentStatus === 'partially_settled' && <Tag color="warning" style={{ fontSize: '14px', padding: '6px 12px' }}>{t('partially_settled')}</Tag>}
+                {paymentStatus === 'not_settled' && <Tag color="error" style={{ fontSize: '14px', padding: '6px 12px' }}>{t('not_settled')}</Tag>}
               </Col>
             </Row>
 
@@ -853,7 +832,7 @@ const CreateInvoice = () => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Button onClick={() => setCurrentStep(2)}>
-                Back
+                {t('back')}
               </Button>
               <Button
                 type="primary"
@@ -862,7 +841,7 @@ const CreateInvoice = () => {
                 className="btn-purple"
                 icon={<SaveOutlined />}
               >
-                Save Invoice & Generate Bill
+                {t('issue_bill')}
               </Button>
             </div>
           </Form>
@@ -885,77 +864,11 @@ const CreateInvoice = () => {
               <Button type="primary" onClick={downloadPDF} icon={<DownloadOutlined />} className="btn-purple">
                 Download PDF
               </Button>
-              <Button type="primary" onClick={shareInvoice} loading={sharing} icon={<ShareAltOutlined />} style={{ background: '#2ecc71', borderColor: '#2ecc71', color: '#fff', borderRadius: '10px' }}>
-                Share Invoice
-              </Button>
               <Button onClick={() => navigate('/dashboard')} icon={<DashboardOutlined />}>
                 Go to Dashboard
               </Button>
             </Space>
           </Card>
-
-          {/* Share Options Modal */}
-          <Modal
-            title={<span style={{ fontWeight: 700 }}>Share Bill Options</span>}
-            open={isShareModalVisible}
-            onCancel={() => setIsShareModalVisible(false)}
-            footer={null}
-            borderRadius={12}
-            width={400}
-            className="no-print"
-          >
-            <div style={{ textAlign: 'center', padding: '10px 0' }}>
-              <Paragraph>Select how you want to share the bill with <strong>{customerInfo?.customer_name}</strong>:</Paragraph>
-              <Space direction="vertical" style={{ width: '100%', marginTop: '10px' }} size="middle">
-                <Button 
-                  type="primary" 
-                  block 
-                  icon={<ShareAltOutlined />} 
-                  onClick={async () => {
-                    setIsShareModalVisible(false);
-                    const element = invoicePrintRef.current;
-                    if (element) {
-                      try {
-                        const canvas = await html2canvas(element, { scale: 1.5, useCORS: true });
-                        const pdf = new jsPDF('p', 'mm', 'a4');
-                        const imgWidth = 210;
-                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
-                        const file = new File([pdf.output('blob')], `Invoice_${savedInvoice?.invoice_no}.pdf`, { type: 'application/pdf' });
-                        if (navigator.share) {
-                          await navigator.share({ files: [file] });
-                        } else {
-                          Modal.info({ title: 'Not Supported', content: 'Native PDF sharing is not supported by your browser.' });
-                        }
-                      } catch (e) {
-                        console.error(e);
-                      }
-                    }
-                  }}
-                  style={{ height: '45px', background: '#3498db', borderColor: '#3498db' }}
-                  disabled={!navigator.share}
-                >
-                  Share PDF File via Apps
-                </Button>
-                <Button 
-                  type="primary" 
-                  block 
-                  icon={<PhoneOutlined />} 
-                  onClick={handleWhatsAppShare}
-                  style={{ height: '45px', background: '#2ecc71', borderColor: '#2ecc71' }}
-                >
-                  Send Bill to Customer Phone (WhatsApp)
-                </Button>
-                <Button 
-                  block 
-                  onClick={copyReceiptToClipboard}
-                  style={{ height: '45px' }}
-                >
-                  Copy Text Bill Summary to Clipboard
-                </Button>
-              </Space>
-            </div>
-          </Modal>
 
           {/* PRINTABLE BILL SHEET LAYOUT */}
           <div className="printable-bill" ref={invoicePrintRef}>

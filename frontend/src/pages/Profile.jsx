@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Form, Input, Button, Upload, Alert, Typography, Divider, Row, Col, Modal, Space } from 'antd';
+import { Card, Form, Input, Button, Upload, Alert, Typography, Divider, Row, Col, Modal, Space, Select } from 'antd';
 import { UserOutlined, ShopOutlined, PhoneOutlined, HomeOutlined, GlobalOutlined, UploadOutlined, ClearOutlined, CheckOutlined, EditOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { Title, Text, Paragraph } = Typography;
+const { Option } = Select;
 
 const Profile = () => {
+  const { t, language, setLanguage } = useLanguage();
   const { user, updateProfile } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -125,8 +128,8 @@ const Profile = () => {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ marginBottom: '24px' }}>
-        <Title level={2} style={{ marginBottom: '4px', fontWeight: 800 }}>Business Profile Settings</Title>
-        <Text type="secondary">Manage your business address, signature, and phone details that display on bills</Text>
+        <Title level={2} style={{ marginBottom: '4px', fontWeight: 800 }}>{t('profile_settings')}</Title>
+        <Text type="secondary">{t('profile_subtitle')}</Text>
       </div>
 
       {success && <Alert message="Profile Settings Saved Successfully!" type="success" showIcon style={{ marginBottom: '20px', borderRadius: '12px' }} />}
@@ -134,7 +137,7 @@ const Profile = () => {
 
       <Row gutter={[24, 24]}>
         <Col xs={24} md={15}>
-          <Card className="glass-panel" title="Owner Details & Address">
+          <Card className="glass-panel" title={t('profile_settings')}>
             <Form
               form={form}
               layout="vertical"
@@ -143,7 +146,7 @@ const Profile = () => {
             >
               <Form.Item
                 name="name"
-                label="Billing Owner / Operator Name"
+                label={t('billing_owner')}
                 rules={[{ required: true, message: 'Please input the Operator name!' }]}
               >
                 <Input prefix={<UserOutlined />} placeholder="e.g. Arun Kumar" />
@@ -153,7 +156,7 @@ const Profile = () => {
                 <Col span={12}>
                   <Form.Item
                     name="business_name"
-                    label="Business / Weighing Center Name"
+                    label={t('weighing_center')}
                     rules={[{ required: true, message: 'Please input the Business name!' }]}
                   >
                     <Input prefix={<ShopOutlined />} placeholder="e.g. Trichy Banana Traders" />
@@ -162,7 +165,7 @@ const Profile = () => {
                 <Col span={12}>
                   <Form.Item
                     name="phone"
-                    label="Operator Contact Phone"
+                    label={t('operator_phone')}
                     rules={[{ required: true, message: 'Please input the Phone number!' }]}
                   >
                     <Input prefix={<PhoneOutlined />} placeholder="e.g. +91 98765 43210" />
@@ -174,7 +177,7 @@ const Profile = () => {
                 <Col span={12}>
                   <Form.Item
                     name="native_place"
-                    label="Native Place / Location"
+                    label={t('location')}
                     rules={[{ required: true, message: 'Please input the Native place!' }]}
                   >
                     <Input prefix={<HomeOutlined />} placeholder="e.g. Thottiyam" />
@@ -183,7 +186,7 @@ const Profile = () => {
                 <Col span={12}>
                   <Form.Item
                     name="district"
-                    label="District Name"
+                    label={t('district')}
                     rules={[{ required: true, message: 'Please input the District!' }]}
                   >
                     <Input prefix={<GlobalOutlined />} placeholder="e.g. Trichy" disabled={user?.is_approved} />
@@ -195,16 +198,29 @@ const Profile = () => {
 
               <Form.Item style={{ marginBottom: 0 }}>
                 <Button type="primary" htmlType="submit" loading={loading} className="btn-primary">
-                  Save Changes
+                  {t('save_changes')}
                 </Button>
               </Form.Item>
             </Form>
           </Card>
         </Col>
 
-        {/* Signature Box */}
+        {/* Right side: Language Settings & Signature Box */}
         <Col xs={24} md={9}>
-          <Card className="glass-panel" title="Authorized Signature" style={{ height: '100%' }}>
+          <Card className="glass-panel" title={t('language_select')} style={{ marginBottom: '24px' }}>
+            <Select
+              value={language}
+              onChange={(val) => setLanguage(val)}
+              style={{ width: '100%' }}
+              size="large"
+            >
+              <Option value="en">{t('english')}</Option>
+              <Option value="ta">{t('tamil')}</Option>
+              <Option value="hi">{t('hindi')}</Option>
+            </Select>
+          </Card>
+
+          <Card className="glass-panel" title={t('auth_signature')}>
             <div style={{ textAlign: 'center' }}>
               {signatureData ? (
                 <div style={{ marginBottom: '16px' }}>
@@ -232,7 +248,7 @@ const Profile = () => {
 
               <Divider style={{ margin: '12px 0' }} />
 
-              <Typography.Title level={5} style={{ textAlign: 'left', marginBottom: '8px' }}>Option 1: Digital Drawing Pad</Typography.Title>
+              <Typography.Title level={5} style={{ textAlign: 'left', marginBottom: '8px' }}>{t('digital_pad')}</Typography.Title>
               
               <canvas
                 ref={canvasRef}
@@ -262,7 +278,7 @@ const Profile = () => {
 
               <Divider style={{ margin: '8px 0' }} />
 
-              <Typography.Title level={5} style={{ textAlign: 'left', marginBottom: '8px' }}>Option 2: Upload Scan File</Typography.Title>
+              <Typography.Title level={5} style={{ textAlign: 'left', marginBottom: '8px' }}>{t('upload_scan')}</Typography.Title>
               
               <Upload
                 beforeUpload={handleSignatureUpload}

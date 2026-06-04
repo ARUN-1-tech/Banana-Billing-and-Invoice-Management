@@ -8,10 +8,12 @@ import {
   LogoutOutlined, KeyOutlined, AppstoreOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { Header, Sider, Content } = Layout;
 
 const MainLayout = ({ children, isDarkMode, toggleDarkMode }) => {
+  const { t } = useLanguage();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -57,12 +59,12 @@ const MainLayout = ({ children, isDarkMode, toggleDarkMode }) => {
         {
           key: '/dashboard',
           icon: <DashboardOutlined />,
-          label: <Link to="/dashboard">Dashboard</Link>,
+          label: <Link to="/dashboard">{t('dashboard')}</Link>,
         },
         {
           key: '/rates',
           icon: <AppstoreOutlined />,
-          label: <Link to="/rates">Banana Rates</Link>,
+          label: <Link to="/rates">{t('banana_rates')}</Link>,
         },
         {
           key: '/admin-panel',
@@ -72,7 +74,7 @@ const MainLayout = ({ children, isDarkMode, toggleDarkMode }) => {
         {
           key: '/profile',
           icon: <UserOutlined />,
-          label: <Link to="/profile">My Profile</Link>,
+          label: <Link to="/profile">{t('business_profile')}</Link>,
         },
       ];
     } else {
@@ -81,32 +83,32 @@ const MainLayout = ({ children, isDarkMode, toggleDarkMode }) => {
         {
           key: '/dashboard',
           icon: <DashboardOutlined />,
-          label: <Link to="/dashboard">Dashboard</Link>,
+          label: <Link to="/dashboard">{t('dashboard')}</Link>,
         },
         {
           key: '/create-invoice',
           icon: <FileAddOutlined />,
-          label: <Link to="/create-invoice">Create Invoice</Link>,
+          label: <Link to="/create-invoice">{t('create_invoice')}</Link>,
         },
         {
           key: '/rates',
           icon: <AppstoreOutlined />,
-          label: <Link to="/rates">Banana Rates</Link>,
+          label: <Link to="/rates">{t('banana_rates')}</Link>,
         },
         {
           key: '/history',
           icon: <HistoryOutlined />,
-          label: <Link to="/history">Billing History</Link>,
+          label: <Link to="/history">{t('billing_history')}</Link>,
         },
         {
           key: '/reports',
           icon: <LineChartOutlined />,
-          label: <Link to="/reports">Analytics & Reports</Link>,
+          label: <Link to="/reports">{t('reports')}</Link>,
         },
         {
           key: '/profile',
           icon: <UserOutlined />,
-          label: <Link to="/profile">Business Profile</Link>,
+          label: <Link to="/profile">{t('business_profile')}</Link>,
         },
       ];
     }
@@ -252,7 +254,7 @@ const MainLayout = ({ children, isDarkMode, toggleDarkMode }) => {
               />
             </Tooltip>
 
-            <Tooltip title="Log Out">
+            <Tooltip title={t('logout')}>
               <Button
                 type="text"
                 shape="circle"

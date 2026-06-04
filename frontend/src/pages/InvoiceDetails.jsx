@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Row, Col, Typography, Table, Tag, Button, Space, Divider, Form, InputNumber, Select, Modal, Spin, Alert } from 'antd';
-import { PrinterOutlined, DownloadOutlined, ArrowLeftOutlined, CreditCardOutlined, SaveOutlined, ShareAltOutlined, PhoneOutlined } from '@ant-design/icons';
+import { PrinterOutlined, DownloadOutlined, ArrowLeftOutlined, CreditCardOutlined, SaveOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -20,8 +20,6 @@ const InvoiceDetails = () => {
   const [paymentForm] = Form.useForm();
   const [updatingPayment, setUpdatingPayment] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
-  const [sharing, setSharing] = useState(false);
 
   const invoicePrintRef = useRef(null);
 
@@ -97,88 +95,6 @@ const InvoiceDetails = () => {
     window.print();
   };
 
-  // Share invoice (uses native navigator.share if possible, falls back to custom options)
-  const shareInvoice = async () => {
-    const element = invoicePrintRef.current;
-    if (!element) return;
-    
-    setSharing(true);
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      
-      const pdfBlob = pdf.output('blob');
-      const filename = `Invoice_${invoice?.invoice_no || 'BANANA'}.pdf`;
-      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-      
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Invoice #${invoice?.invoice_no}`,
-          text: `Please find attached the banana purchase invoice from ${invoice.owner_details?.business_name || 'Banana Commission Agent'}.`,
-        });
-      } else {
-        // Fallback: Open sharing options Modal
-        setIsShareModalVisible(true);
-      }
-    } catch (err) {
-      console.error('Error in Web Share API', err);
-      // Fallback: Open sharing options Modal
-      setIsShareModalVisible(true);
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const handleWhatsAppShare = () => {
-    const customer = invoice?.customer_details;
-    const owner = invoice?.owner_details;
-    const phone = customer?.phone || '';
-    let formattedPhone = phone.replace(/\D/g, '');
-    if (formattedPhone.length === 10) {
-      formattedPhone = '91' + formattedPhone;
-    }
-    
-    const entries = invoice?.weight_entries || [];
-    const bananaTypes = Array.from(new Set(entries.map(e => e.banana_type).filter(Boolean))).join(', ');
-    const finalAmt = parseFloat(invoice?.final_amount || 0);
-    const netWt = parseFloat(invoice?.net_weight || 0);
-    
-    const textMessage = `Hello *${customer?.name}*,\n\nHere is your banana billing invoice summary from *${owner?.business_name || 'Banana Agent'}*:\n\n📄 *Invoice No:* ${invoice?.invoice_no}\n📅 *Date:* ${invoice?.date}\n🍌 *Varieties:* ${bananaTypes}\n🔢 *Total Pieces:* ${invoice?.total_pieces} Qty\n⚖️ *Net Weight:* ${netWt.toFixed(2)} Kg\n💰 *Final Amount:* ₹${finalAmt.toFixed(2)}\n💸 *Balance Due:* ₹${outstandingBalance.toFixed(2)}\n💳 *Status:* ${invoice?.payment_status.toUpperCase().replace('_', ' ')}\n\nThank you for your business!`;
-    
-    const encodedText = encodeURIComponent(textMessage);
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
-    setIsShareModalVisible(false);
-  };
-
-  const copyReceiptToClipboard = () => {
-    const customer = invoice?.customer_details;
-    const owner = invoice?.owner_details;
-    const entries = invoice?.weight_entries || [];
-    const bananaTypes = Array.from(new Set(entries.map(e => e.banana_type).filter(Boolean))).join(', ');
-    const finalAmt = parseFloat(invoice?.final_amount || 0);
-    const netWt = parseFloat(invoice?.net_weight || 0);
-    
-    const textMessage = `Hello ${customer?.name},\n\nHere is your banana billing invoice summary from ${owner?.business_name || 'Banana Agent'}:\n\nInvoice No: ${invoice?.invoice_no}\nDate: ${invoice?.date}\nVarieties: ${bananaTypes}\nTotal Pieces: ${invoice?.total_pieces} Qty\nNet Weight: ${netWt.toFixed(2)} Kg\nFinal Amount: ₹${finalAmt.toFixed(2)}\nBalance Due: ₹${outstandingBalance.toFixed(2)}\nStatus: ${invoice?.payment_status.toUpperCase().replace('_', ' ')}\n\nThank you for your business!`;
-    
-    navigator.clipboard.writeText(textMessage);
-    Modal.success({
-      title: 'Receipt Copied',
-      content: 'Billing receipt text copied to clipboard successfully!',
-      borderRadius: 12
-    });
-    setIsShareModalVisible(false);
-  };
-
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
@@ -243,74 +159,8 @@ const InvoiceDetails = () => {
           <Button type="primary" icon={<DownloadOutlined />} className="btn-primary" onClick={downloadPDF}>
             Download PDF
           </Button>
-          <Button type="primary" icon={<ShareAltOutlined />} style={{ background: '#2ecc71', borderColor: '#2ecc71', color: '#fff', borderRadius: '10px' }} onClick={shareInvoice} loading={sharing}>
-            Share
-          </Button>
         </Space>
       </div>
-
-      {/* Share Options Modal */}
-      <Modal
-        title={<span style={{ fontWeight: 700 }}>Share Bill Options</span>}
-        open={isShareModalVisible}
-        onCancel={() => setIsShareModalVisible(false)}
-        footer={null}
-        borderRadius={12}
-        width={400}
-        className="no-print"
-      >
-        <div style={{ textAlign: 'center', padding: '10px 0' }}>
-          <Paragraph>Select how you want to share this bill with <strong>{invoice.customer_details?.name}</strong>:</Paragraph>
-          <Space direction="vertical" style={{ width: '100%', marginTop: '10px' }} size="middle">
-            <Button 
-              type="primary" 
-              block 
-              icon={<ShareAltOutlined />} 
-              onClick={async () => {
-                setIsShareModalVisible(false);
-                const element = invoicePrintRef.current;
-                if (element) {
-                  try {
-                    const canvas = await html2canvas(element, { scale: 1.5, useCORS: true });
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    const imgWidth = 210;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
-                    const file = new File([pdf.output('blob')], `Invoice_${invoice?.invoice_no}.pdf`, { type: 'application/pdf' });
-                    if (navigator.share) {
-                      await navigator.share({ files: [file] });
-                    } else {
-                      Modal.info({ title: 'Not Supported', content: 'Native PDF sharing is not supported by your browser.' });
-                    }
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }
-              }}
-              style={{ height: '45px', background: '#3498db', borderColor: '#3498db' }}
-              disabled={!navigator.share}
-            >
-              Share PDF File via Apps
-            </Button>
-            <Button 
-              type="primary" 
-              block 
-              icon={<PhoneOutlined />} 
-              onClick={handleWhatsAppShare}
-              style={{ height: '45px', background: '#2ecc71', borderColor: '#2ecc71' }}
-            >
-              Send Bill to Customer Phone (WhatsApp)
-            </Button>
-            <Button 
-              block 
-              onClick={copyReceiptToClipboard}
-              style={{ height: '45px' }}
-            >
-              Copy Text Bill Summary to Clipboard
-            </Button>
-          </Space>
-        </div>
-      </Modal>
 
       {/* PRINTABLE BILL SHEET LAYOUT */}
       <div className="printable-bill" ref={invoicePrintRef}>
