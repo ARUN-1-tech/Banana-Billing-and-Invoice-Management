@@ -34,7 +34,7 @@ const CreateInvoice = () => {
     {
       id: Date.now(),
       banana_type: undefined,
-      rate: 0.0,
+      rate: undefined,
       billing_method: 'weight',
       removable_weight_per_piece: 0.0,
       entries: [
@@ -152,7 +152,7 @@ const CreateInvoice = () => {
       {
         id: Date.now() + Math.random(),
         banana_type: undefined,
-        rate: 0.0,
+        rate: undefined,
         billing_method: 'weight',
         removable_weight_per_piece: 0.0,
         entries: [
@@ -224,6 +224,15 @@ const CreateInvoice = () => {
       Modal.warning({
         title: 'Selection Required',
         content: 'Please specify the Banana Type variety for all active weighing tables.',
+        borderRadius: 12
+      });
+      return;
+    }
+    const missingRate = weighingTables.some(t => t.rate === undefined || t.rate === null);
+    if (missingRate) {
+      Modal.warning({
+        title: 'Rate Required',
+        content: 'Please specify the Rate for all active weighing tables.',
         borderRadius: 12
       });
       return;
@@ -568,16 +577,14 @@ const CreateInvoice = () => {
                         placeholder="Select variety"
                         value={table.banana_type}
                         onChange={(val) => {
-                          const matched = rates.find(r => r.banana_type === val);
-                          const rateVal = matched ? parseFloat(matched.rate) : 0.0;
                           setWeighingTables(weighingTables.map(t => 
-                            t.id === table.id ? { ...t, banana_type: val, rate: rateVal } : t
+                            t.id === table.id ? { ...t, banana_type: val, rate: undefined } : t
                           ));
                         }}
                         style={{ width: '100%' }}
                       >
                         {rates.map(r => (
-                          <Option key={r.id} value={r.banana_type}>{r.banana_type} (Rs.{r.rate}/kg)</Option>
+                          <Option key={r.id} value={r.banana_type}>{r.banana_type}</Option>
                         ))}
                       </Select>
                     </Form.Item>
@@ -602,10 +609,11 @@ const CreateInvoice = () => {
                     <Form.Item label={`Rate per ${table.billing_method === 'piece' ? 'Piece' : 'Kg'} (Rs.)`} required>
                       <InputNumber
                         min={0.0}
+                        placeholder="0.00"
                         value={table.rate}
                         onChange={(val) => {
                           setWeighingTables(weighingTables.map(t => 
-                            t.id === table.id ? { ...t, rate: val || 0.0 } : t
+                            t.id === table.id ? { ...t, rate: val } : t
                           ));
                         }}
                         style={{ width: '100%' }}
@@ -724,24 +732,27 @@ const CreateInvoice = () => {
               return (
                 <div key={t.id} style={{ marginBottom: '12px', padding: '12px 16px', background: 'rgba(140, 122, 230, 0.06)', borderRadius: '10px', border: '1px solid rgba(140, 122, 230, 0.15)' }}>
                   <Row align="middle" justify="space-between">
-                    <Col span={6}>
+                    <Col span={5}>
                       <Text strong style={{ fontSize: '15px', color: '#8c7ae6' }}>{t.banana_type || 'Variety'}</Text>
                       <div style={{ fontSize: '11px', opacity: 0.6 }}>Rate: ₹{t.rate}/Kg</div>
                     </Col>
                     <Col span={14}>
                       <Row gutter={8} style={{ fontSize: '12px' }}>
-                        <Col span={6}>
+                        <Col span={5}>
                           <Text type="secondary">Pieces:</Text> <Text strong>{pcs}</Text>
                         </Col>
-                        <Col span={9}>
-                          <Text type="secondary">Gross Weight:</Text> <Text strong>{gross.toFixed(2)} Kg</Text>
+                        <Col span={6}>
+                          <Text type="secondary">Gross:</Text> <Text strong>{gross.toFixed(2)} Kg</Text>
                         </Col>
-                        <Col span={9}>
-                          <Text type="secondary">Removable Weight:</Text> <Text strong>{remov.toFixed(2)} Kg</Text>
+                        <Col span={7}>
+                          <Text type="secondary">Removable:</Text> <Text strong>{remov.toFixed(2)} Kg</Text>
+                        </Col>
+                        <Col span={6}>
+                          <Text type="secondary">Net Weight:</Text> <Text strong>{net.toFixed(2)} Kg</Text>
                         </Col>
                       </Row>
                     </Col>
-                    <Col span={4} style={{ textAlign: 'right' }}>
+                    <Col span={5} style={{ textAlign: 'right' }}>
                       <Text type="secondary">Subtotal:</Text>
                       <div style={{ fontWeight: 700, fontSize: '14px', color: '#e5a92c' }}>₹{subtotal.toFixed(2)}</div>
                     </Col>
@@ -770,13 +781,13 @@ const CreateInvoice = () => {
               </Card>
             </Col>
             <Col xs={12} sm={12}>
-              <Card size="small" style={{ background: 'rgba(0,0,0,0.01)', border: '1px solid rgba(46, 204, 113, 0.4)' }}>
-                <Statistic title="Net Weight" value={netWeight} precision={2} suffix="Kg" valueStyle={{ color: '#2ecc71', fontWeight: 700 }} />
+              <Card size="small" style={{ background: 'rgba(0,0,0,0.01)', border: '1px solid rgba(246, 185, 59, 0.4)' }}>
+                <Statistic title="Final Amount" value={finalAmount} precision={2} prefix="₹" valueStyle={{ color: '#f6b93b', fontWeight: 700 }} />
               </Card>
             </Col>
             <Col xs={12} sm={12}>
-              <Card size="small" style={{ background: 'rgba(0,0,0,0.01)', border: '1px solid rgba(246, 185, 59, 0.4)' }}>
-                <Statistic title="Final Amount" value={finalAmount} precision={2} prefix="₹" valueStyle={{ color: '#f6b93b', fontWeight: 700 }} />
+              <Card size="small" style={{ background: 'rgba(0,0,0,0.01)', border: '1px solid rgba(46, 204, 113, 0.4)' }}>
+                <Statistic title="Net Weight" value={netWeight} precision={2} suffix="Kg" valueStyle={{ color: '#2ecc71', fontWeight: 700 }} />
               </Card>
             </Col>
           </Row>
@@ -947,8 +958,8 @@ const CreateInvoice = () => {
           </Modal>
 
           {/* PRINTABLE BILL SHEET LAYOUT */}
-          <div style={{ background: '#fff', color: '#000', padding: '30px', borderRadius: '12px', border: '1px solid #ddd', maxWidth: '850px', margin: '0 auto' }} ref={invoicePrintRef}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #f6b93b', paddingBottom: '20px', marginBottom: '20px' }}>
+          <div className="printable-bill" ref={invoicePrintRef}>
+            <div className="bill-header" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #f6b93b', paddingBottom: '20px', marginBottom: '20px' }}>
               <div>
                 <Title level={2} style={{ margin: 0, color: '#f6b93b', fontWeight: 800 }}>BANANA BILLING INVOICE</Title>
                 <Text style={{ fontWeight: 600, fontSize: '14px', color: '#555' }}>Invoice No: {savedInvoice?.invoice_no}</Text>
@@ -962,7 +973,7 @@ const CreateInvoice = () => {
             </div>
 
             <Row gutter={16} style={{ marginBottom: '24px' }}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <div style={{ background: '#f9f9f9', padding: '12px', borderRadius: '8px', border: '1px solid #eee' }}>
                   <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: '#888', display: 'block', marginBottom: '4px' }}>Customer Details</Text>
                   <Text strong style={{ display: 'block', fontSize: '16px' }}>{customerInfo?.customer_name}</Text>
@@ -970,7 +981,7 @@ const CreateInvoice = () => {
                   <Text style={{ display: 'block' }}>Place: {customerInfo?.customer_place}</Text>
                 </div>
               </Col>
-              <Col span={12} style={{ textAlign: 'right' }}>
+              <Col xs={24} sm={12} className="bill-header-right" style={{ textAlign: 'right' }}>
                 <div style={{ padding: '12px' }}>
                   <Text style={{ display: 'block' }}><Text strong>Banana Varieties:</Text> {uniqueBananaTypes}</Text>
                   <Text style={{ display: 'block' }}><Text strong>Date:</Text> {savedInvoice?.date}</Text>
@@ -997,28 +1008,30 @@ const CreateInvoice = () => {
                     <div style={{ background: '#fafafa', padding: '6px 12px', border: '1px solid #ddd', borderBottom: 'none', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
                       Variety Segment #{idx + 1}: {t.banana_type} (₹{(parseFloat(t.rate) || 0.0).toFixed(2)}/Piece)
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #ddd' }}>
-                          <th style={{ padding: '6px 10px', textAlign: 'left', border: '1px solid #ddd', fontSize: '12px' }}>S.No</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>Quantity (Pieces)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {t.entries.map((e, rIdx) => (
-                          <tr key={rIdx} style={{ borderBottom: '1px solid #eee' }}>
-                            <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>{e.serial_no}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{e.piece_count}</td>
+                    <div className="bill-table-wrapper">
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #ddd' }}>
+                            <th style={{ padding: '6px 10px', textAlign: 'left', border: '1px solid #ddd', fontSize: '12px' }}>S.No</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>Quantity (Pieces)</th>
                           </tr>
-                        ))}
-                        <tr style={{ fontWeight: 'bold', background: '#f5f5f5' }}>
-                          <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>Totals</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>
-                            Pieces: {tablePieces} | Subtotal: ₹{tableSubtotal.toFixed(2)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {t.entries.map((e, rIdx) => (
+                            <tr key={rIdx} style={{ borderBottom: '1px solid #eee' }}>
+                              <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>{e.serial_no}</td>
+                              <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{e.piece_count}</td>
+                            </tr>
+                          ))}
+                          <tr style={{ fontWeight: 'bold', background: '#f5f5f5' }}>
+                            <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>Totals</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>
+                              Pieces: {tablePieces} | Subtotal: ₹{tableSubtotal.toFixed(2)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 );
               }
@@ -1032,38 +1045,40 @@ const CreateInvoice = () => {
                   <div style={{ background: '#fafafa', padding: '6px 12px', border: '1px solid #ddd', borderBottom: 'none', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
                     Variety Segment #{idx + 1}: {t.banana_type} (₹{(parseFloat(t.rate) || 0.0).toFixed(2)}/Kg)
                   </div>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #ddd' }}>
-                        <th style={{ padding: '6px 10px', textAlign: 'left', border: '1px solid #ddd', fontSize: '12px' }}>S.No</th>
-                        <th style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>Pieces</th>
-                        <th style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>Gross Weight (Kg)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {t.entries.map((e, rIdx) => (
-                        <tr key={rIdx} style={{ borderBottom: '1px solid #eee' }}>
-                          <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>{e.serial_no}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{e.piece_count}</td>
-                          <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>{e.weight ? parseFloat(e.weight).toFixed(2) : '0.00'}</td>
+                  <div className="bill-table-wrapper">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #ddd' }}>
+                          <th style={{ padding: '6px 10px', textAlign: 'left', border: '1px solid #ddd', fontSize: '12px' }}>S.No</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>Pieces</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>Gross Weight (Kg)</th>
                         </tr>
-                      ))}
-                      <tr style={{ fontWeight: 'bold', background: '#f5f5f5' }}>
-                        <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>Totals</td>
-                        <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{tablePieces}</td>
-                        <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>
-                          Gross: {tableGross.toFixed(2)} | Net: {tableNet.toFixed(2)} | Subtotal: ₹{tableSubtotal.toFixed(2)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {t.entries.map((e, rIdx) => (
+                          <tr key={rIdx} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>{e.serial_no}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{e.piece_count}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>{e.weight ? parseFloat(e.weight).toFixed(2) : '0.00'}</td>
+                          </tr>
+                        ))}
+                        <tr style={{ fontWeight: 'bold', background: '#f5f5f5' }}>
+                          <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>Totals</td>
+                          <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{tablePieces}</td>
+                          <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>
+                            Gross: {tableGross.toFixed(2)} | Net: {tableNet.toFixed(2)} | Subtotal: ₹{tableSubtotal.toFixed(2)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               );
             })}
 
             {/* Billing Engine Summary inside Invoice */}
             <Row gutter={16} style={{ marginTop: '30px' }}>
-              <Col span={12}>
+              <Col xs={24} md={12} style={{ marginBottom: '16px' }}>
                 <div style={{ background: '#fafafa', padding: '12px', borderRadius: '8px', border: '1px solid #eee' }}>
                   <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: '#888', display: 'block', marginBottom: '6px' }}>Payment Mode & Settlement</Text>
                   <Text style={{ display: 'block' }}><Text strong>Payment Mode:</Text> {paymentMode.toUpperCase()}</Text>
@@ -1077,8 +1092,8 @@ const CreateInvoice = () => {
                   </Text>
                 </div>
               </Col>
-              <Col span={12}>
-                <div style={{ float: 'right', width: '280px' }}>
+              <Col xs={24} md={12}>
+                <div className="bill-summary-col" style={{ float: 'right', width: '280px', maxWidth: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <Text>Total Pieces:</Text>
                     <Text strong>{totalPieces}</Text>

@@ -5,7 +5,7 @@ import {
   MenuUnfoldOutlined, MenuFoldOutlined, DashboardOutlined,
   FileAddOutlined, HistoryOutlined, LineChartOutlined,
   UserOutlined, SettingOutlined, BulbOutlined,
-  LogoutOutlined, KeyOutlined, AppstoreOutlined, CarOutlined
+  LogoutOutlined, KeyOutlined, AppstoreOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 
@@ -97,11 +97,6 @@ const MainLayout = ({ children, isDarkMode, toggleDarkMode }) => {
           key: '/history',
           icon: <HistoryOutlined />,
           label: <Link to="/history">Billing History</Link>,
-        },
-        {
-          key: '/vehicles',
-          icon: <CarOutlined />,
-          label: <Link to="/vehicles">Logistics Log</Link>,
         },
         {
           key: '/reports',

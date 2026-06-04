@@ -313,8 +313,8 @@ const InvoiceDetails = () => {
       </Modal>
 
       {/* PRINTABLE BILL SHEET LAYOUT */}
-      <div style={{ background: '#fff', color: '#000', padding: '30px', borderRadius: '12px', border: '1px solid #ddd' }} ref={invoicePrintRef}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #f6b93b', paddingBottom: '20px', marginBottom: '20px' }}>
+      <div className="printable-bill" ref={invoicePrintRef}>
+        <div className="bill-header" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #f6b93b', paddingBottom: '20px', marginBottom: '20px' }}>
           <div>
             <Title level={2} style={{ margin: 0, color: '#f6b93b', fontWeight: 800 }}>BANANA BILLING INVOICE</Title>
             <Text style={{ fontWeight: 600, fontSize: '14px', color: '#555' }}>Invoice No: {invoice.invoice_no}</Text>
@@ -328,7 +328,7 @@ const InvoiceDetails = () => {
         </div>
 
         <Row gutter={16} style={{ marginBottom: '24px' }}>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <div style={{ background: '#f9f9f9', padding: '12px', borderRadius: '8px', border: '1px solid #eee' }}>
               <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: '#888', display: 'block', marginBottom: '4px' }}>Customer Details</Text>
               <Text strong style={{ display: 'block', fontSize: '16px' }}>{invoice.customer_details?.name}</Text>
@@ -336,7 +336,7 @@ const InvoiceDetails = () => {
               <Text style={{ display: 'block' }}>Place: {invoice.customer_details?.place}</Text>
             </div>
           </Col>
-          <Col span={12} style={{ textAlign: 'right' }}>
+          <Col xs={24} sm={12} className="bill-header-right" style={{ textAlign: 'right' }}>
             <div style={{ padding: '12px' }}>
               <Text style={{ display: 'block' }}><Text strong>Banana Type(s):</Text> {uniqueBananaTypes || invoice.customer_details?.banana_type || 'N/A'}</Text>
               <Text style={{ display: 'block' }}><Text strong>Date:</Text> {invoice.date}</Text>
@@ -363,29 +363,31 @@ const InvoiceDetails = () => {
                 <div style={{ background: '#fafafa', padding: '6px 12px', border: '1px solid #ddd', borderBottom: 'none', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
                   Variety Segment #{idx + 1}: {t.banana_type} (₹{t.rate.toFixed(2)}/Piece)
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #ddd' }}>
-                      <th style={{ padding: '6px 10px', textAlign: 'left', border: '1px solid #ddd', fontSize: '12px' }}>S.No</th>
-                      <th style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>Quantity (Pieces)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {t.entries.map((e, rIdx) => (
-                      <tr key={rIdx} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>{e.serial_no}</td>
-                        <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{e.piece_count}</td>
+                <div className="bill-table-wrapper">
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #ddd' }}>
+                        <th style={{ padding: '6px 10px', textAlign: 'left', border: '1px solid #ddd', fontSize: '12px' }}>S.No</th>
+                        <th style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>Quantity (Pieces)</th>
                       </tr>
-                    ))}
-                    <tr style={{ fontWeight: 'bold', background: '#f5f5f5' }}>
-                      <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>Totals</td>
-                      <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{tablePieces}</td>
-                      <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>
-                        Subtotal: ₹{tableSubtotal.toFixed(2)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {t.entries.map((e, rIdx) => (
+                        <tr key={rIdx} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>{e.serial_no}</td>
+                          <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{e.piece_count}</td>
+                        </tr>
+                      ))}
+                      <tr style={{ fontWeight: 'bold', background: '#f5f5f5' }}>
+                        <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>Totals</td>
+                        <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{tablePieces}</td>
+                        <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>
+                          Subtotal: ₹{tableSubtotal.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             );
           }
@@ -399,38 +401,40 @@ const InvoiceDetails = () => {
               <div style={{ background: '#fafafa', padding: '6px 12px', border: '1px solid #ddd', borderBottom: 'none', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
                 Variety Segment #{idx + 1}: {t.banana_type} (₹{t.rate.toFixed(2)}/Kg)
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #ddd' }}>
-                    <th style={{ padding: '6px 10px', textAlign: 'left', border: '1px solid #ddd', fontSize: '12px' }}>S.No</th>
-                    <th style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>Pieces</th>
-                    <th style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>Gross Weight (Kg)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {t.entries.map((e, rIdx) => (
-                    <tr key={rIdx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>{e.serial_no}</td>
-                      <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{e.piece_count}</td>
-                      <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>{e.weight ? parseFloat(e.weight).toFixed(2) : '0.00'}</td>
+              <div className="bill-table-wrapper">
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #ddd' }}>
+                      <th style={{ padding: '6px 10px', textAlign: 'left', border: '1px solid #ddd', fontSize: '12px' }}>S.No</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>Pieces</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>Gross Weight (Kg)</th>
                     </tr>
-                  ))}
-                  <tr style={{ fontWeight: 'bold', background: '#f5f5f5' }}>
-                    <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>Totals</td>
-                    <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{tablePieces}</td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>
-                      Gross: {tableGross.toFixed(2)} | Net: {tableNet.toFixed(2)} | Subtotal: ₹{tableSubtotal.toFixed(2)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {t.entries.map((e, rIdx) => (
+                      <tr key={rIdx} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>{e.serial_no}</td>
+                        <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{e.piece_count}</td>
+                        <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>{e.weight ? parseFloat(e.weight).toFixed(2) : '0.00'}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ fontWeight: 'bold', background: '#f5f5f5' }}>
+                      <td style={{ padding: '6px 10px', border: '1px solid #ddd', fontSize: '12px' }}>Totals</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'center', border: '1px solid #ddd', fontSize: '12px' }}>{tablePieces}</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'right', border: '1px solid #ddd', fontSize: '12px' }}>
+                        Gross: {tableGross.toFixed(2)} | Net: {tableNet.toFixed(2)} | Subtotal: ₹{tableSubtotal.toFixed(2)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           );
         })}
 
         {/* Calculations and payment lists */}
         <Row gutter={16} style={{ marginBottom: '30px' }}>
-          <Col span={12}>
+          <Col xs={24} md={12} style={{ marginBottom: '16px' }}>
             <div style={{ background: '#fafafa', padding: '12px', borderRadius: '8px', border: '1px solid #eee', marginBottom: '12px' }}>
               <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: '#888', display: 'block', marginBottom: '6px' }}>Payment Ledger Settings</Text>
               <Text style={{ display: 'block' }}><Text strong>Total Cost:</Text> ₹{finalAmount.toFixed(2)}</Text>
@@ -457,8 +461,8 @@ const InvoiceDetails = () => {
               </div>
             )}
           </Col>
-          <Col span={12}>
-            <div style={{ float: 'right', width: '260px' }}>
+          <Col xs={24} md={12}>
+            <div className="bill-summary-col" style={{ float: 'right', width: '260px', maxWidth: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <Text>Total Pieces:</Text>
                 <Text strong>{invoice.total_pieces}</Text>

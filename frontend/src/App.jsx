@@ -13,7 +13,6 @@ import Profile from './pages/Profile';
 import Rates from './pages/Rates';
 import AdminPanel from './pages/AdminPanel';
 import Reports from './pages/Reports';
-import VehicleLog from './pages/VehicleLog';
 
 // Private Route Guard Wrapper
 const PrivateRoute = ({ children, isDarkMode, toggleDarkMode, allowedRoles }) => {
@@ -94,11 +93,6 @@ const AppContent = ({ isDarkMode, toggleDarkMode }) => {
       <Route path="/reports" element={
         <PrivateRoute isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} allowedRoles={['owner']}>
           <Reports />
-        </PrivateRoute>
-      } />
-      <Route path="/vehicles" element={
-        <PrivateRoute isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} allowedRoles={['owner']}>
-          <VehicleLog />
         </PrivateRoute>
       } />
 
