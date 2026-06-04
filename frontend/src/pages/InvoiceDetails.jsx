@@ -68,7 +68,6 @@ const InvoiceDetails = () => {
     }
   };
 
-  // PDF Export
   const downloadPDF = async () => {
     const element = invoicePrintRef.current;
     if (!element) return;
@@ -76,14 +75,30 @@ const InvoiceDetails = () => {
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
-        useCORS: true
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210; // A4 size width
+      const pageHeight = 295; // A4 height limit in mm with a safe boundary
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Append subsequent pages if the content overflows a single A4 page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
       pdf.save(`Invoice_${invoice?.invoice_no}.pdf`);
     } catch (err) {
       console.error('Error rendering PDF', err);

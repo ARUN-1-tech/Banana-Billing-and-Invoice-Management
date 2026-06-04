@@ -327,13 +327,20 @@ const CreateInvoice = () => {
         time: form.getFieldValue('time'),
         removable_weight_per_piece: weighingTables[0]?.removable_weight_per_piece || 0.0,
         total_pieces: totalPieces,
-        total_gross_weight: totalGrossWeight,
+        gross_weight: totalGrossWeight,
         total_removable_weight: totalRemovableWeight,
         net_weight: netWeight,
         final_amount: finalAmount,
+        payment_status: paymentStatus,
         weight_entries: formattedEntries,
-        payment_mode: paymentMode,
-        paid_amount: paidAmount
+        payments: [
+          {
+            payment_mode: paymentMode,
+            paid_amount: paidAmount,
+            balance_amount: balanceAmount,
+            status: paymentStatus
+          }
+        ]
       };
 
       const invResponse = await axios.post('/invoices/', invoicePayload);
@@ -346,9 +353,21 @@ const CreateInvoice = () => {
       setCurrentStep(4);
     } catch (err) {
       console.error('Error saving invoice', err);
+      let errorMessage = 'Database connection error.';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else if (typeof err.response.data === 'object') {
+          errorMessage = Object.entries(err.response.data)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .join('\n');
+        }
+      }
       Modal.error({
         title: 'Invoice Save Failure',
-        content: err.response?.data?.error || 'Database connection error.',
+        content: errorMessage,
         borderRadius: 12
       });
     } finally {
@@ -356,7 +375,6 @@ const CreateInvoice = () => {
     }
   };
 
-  // PDF Download Action
   const downloadPDF = async () => {
     const element = invoicePrintRef.current;
     if (!element) return;
@@ -364,14 +382,30 @@ const CreateInvoice = () => {
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
-        useCORS: true
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210;
+      const pageHeight = 295; // A4 height limit in mm with a safe boundary
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Append subsequent pages if the content overflows a single A4 page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
       pdf.save(`Invoice_${savedInvoice?.invoice_no}.pdf`);
     } catch (err) {
       console.error('Error rendering PDF', err);
