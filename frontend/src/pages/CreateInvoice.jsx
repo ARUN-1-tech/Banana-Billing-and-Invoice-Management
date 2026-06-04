@@ -389,21 +389,29 @@ const CreateInvoice = () => {
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210;
-      const pageHeight = 295; // A4 height limit in mm with a safe boundary
+      const pageHeight = 297; // Exact A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
 
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      if (imgHeight > pageHeight && imgHeight <= 350) {
+        // Auto-fit to a single page with preserved aspect ratio
+        const scale = pageHeight / imgHeight;
+        const scaledWidth = imgWidth * scale;
+        const xOffset = (imgWidth - scaledWidth) / 2;
+        pdf.addImage(imgData, 'PNG', xOffset, 0, scaledWidth, pageHeight);
+      } else {
+        // Multi-page slicing with exact page alignment (no overlaps)
+        let heightLeft = imgHeight;
+        let position = 0;
 
-      // Append subsequent pages if the content overflows a single A4 page
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+          position = -pageHeight * pdf.internal.getNumberOfPages();
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
       }
 
       pdf.save(`Invoice_${savedInvoice?.invoice_no}.pdf`);
