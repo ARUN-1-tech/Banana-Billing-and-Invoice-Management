@@ -17,6 +17,7 @@ class User(AbstractUser):
     native_place = models.CharField(max_length=255, blank=True, null=True)
     signature = models.TextField(blank=True, null=True) # Can store base64 string or image url
     is_approved = models.BooleanField(default=False)
+    pin = models.CharField(max_length=4, default='1234', blank=True)
     
     # We want users to log in using email or username, so we make sure email is not empty.
     REQUIRED_FIELDS = ['email']

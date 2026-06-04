@@ -16,7 +16,7 @@ class BananaBillingTests(TestCase):
         self.trichy_admin = User.objects.create_superuser(
             username='trichy_admin',
             email='trichy_admin@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='admin',
             district='Trichy',
             is_approved=True
@@ -26,7 +26,7 @@ class BananaBillingTests(TestCase):
         self.madurai_admin = User.objects.create_superuser(
             username='madurai_admin',
             email='madurai_admin@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='admin',
             district='Madurai',
             is_approved=True
@@ -52,8 +52,8 @@ class BananaBillingTests(TestCase):
         signup_fail_data = {
             'username': 'owner_fail',
             'email': 'owner_fail@banana.com',
-            'password': 'testpassword',
-            'confirm_password': 'testpassword',
+            'password': 'testpassword1',
+            'confirm_password': 'testpassword1',
             'name': 'Trichy Trader Mismatch',
             'phone': '1234567890',
             'district': 'Trichy',
@@ -69,8 +69,8 @@ class BananaBillingTests(TestCase):
         signup_success_data = {
             'username': 'trichy_owner',
             'email': 'trichy_owner@banana.com',
-            'password': 'testpassword',
-            'confirm_password': 'testpassword',
+            'password': 'testpassword1',
+            'confirm_password': 'testpassword1',
             'name': 'Trichy Owner',
             'phone': '9999999999',
             'district': 'Trichy',
@@ -88,7 +88,7 @@ class BananaBillingTests(TestCase):
         trichy_owner = User.objects.create_user(
             username='trichy_owner',
             email='trichy_owner@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Trichy',
             is_approved=False
@@ -97,7 +97,7 @@ class BananaBillingTests(TestCase):
         madurai_owner = User.objects.create_user(
             username='madurai_owner',
             email='madurai_owner@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Madurai',
             is_approved=False
@@ -139,8 +139,8 @@ class BananaBillingTests(TestCase):
         signup_data = {
             'username': 'owner_disabled',
             'email': 'owner_disabled@banana.com',
-            'password': 'testpassword',
-            'confirm_password': 'testpassword',
+            'password': 'testpassword1',
+            'confirm_password': 'testpassword1',
             'name': 'Trader Disabled',
             'phone': '1234567890',
             'district': 'Trichy',
@@ -157,7 +157,7 @@ class BananaBillingTests(TestCase):
         trichy_owner = User.objects.create_user(
             username='trichy_owner',
             email='trichy_owner@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Trichy',
             is_approved=True
@@ -194,7 +194,7 @@ class BananaBillingTests(TestCase):
         trichy_owner = User.objects.create_user(
             username='trichy_owner_lock',
             email='trichy_owner_lock@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Trichy',
             is_approved=True
@@ -215,7 +215,7 @@ class BananaBillingTests(TestCase):
         trichy_owner = User.objects.create_user(
             username='trichy_owner_veh',
             email='trichy_owner_veh@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Trichy',
             is_approved=True
@@ -246,7 +246,7 @@ class BananaBillingTests(TestCase):
         trichy_owner = User.objects.create_user(
             username='trichy_owner_inv',
             email='trichy_owner_inv@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Trichy',
             is_approved=True
@@ -298,7 +298,7 @@ class BananaBillingTests(TestCase):
         trichy_owner = User.objects.create_user(
             username='trichy_owner_cargo',
             email='trichy_owner_cargo@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Trichy',
             is_approved=True
@@ -357,7 +357,7 @@ class BananaBillingTests(TestCase):
         trichy_owner = User.objects.create_user(
             username='trichy_owner_piece',
             email='trichy_owner_piece@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Trichy',
             is_approved=True
@@ -400,7 +400,7 @@ class BananaBillingTests(TestCase):
         trichy_owner = User.objects.create_user(
             username='trichy_owner_del',
             email='trichy_owner_del@banana.com',
-            password='testpassword',
+            password='testpassword1',
             role='owner',
             district='Trichy',
             is_approved=True

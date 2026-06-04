@@ -11,8 +11,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'name', 'phone', 'role', 'district', 
-                  'business_name', 'native_place', 'signature', 'is_approved', 'password')
+                  'business_name', 'native_place', 'signature', 'is_approved', 'password', 'pin')
         read_only_fields = ('id', 'is_approved')
+
+    def validate_pin(self, value):
+        if value and (not value.isdigit() or len(value) != 4):
+            raise serializers.ValidationError("PIN must be exactly a 4-digit number.")
+        return value
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -40,6 +45,15 @@ class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
 
+    def validate_password(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters long.")
+        if not any(char.isdigit() for char in value):
+            raise serializers.ValidationError("Password must contain at least one digit.")
+        if not any(char.isalpha() for char in value):
+            raise serializers.ValidationError("Password must contain at least one letter.")
+        return value
+
     class Meta:
         model = User
         fields = (
@@ -63,7 +77,7 @@ class SignupSerializer(serializers.ModelSerializer):
 
         # Passcode validation
         try:
-            SignupPasscode.objects.get(
+            passcode_obj = SignupPasscode.objects.get(
                 passcode=attrs['passcode'],
                 is_active=True
             )
@@ -71,6 +85,15 @@ class SignupSerializer(serializers.ModelSerializer):
         except SignupPasscode.DoesNotExist:
             raise serializers.ValidationError({
                 "passcode": "Invalid or inactive signup passcode"
+            })
+
+        # Enforce district validation matching creator and registrant
+        creator_district = passcode_obj.created_by.district.strip().lower() if passcode_obj.created_by.district else ""
+        registrant_district = attrs['district'].strip().lower() if attrs.get('district') else ""
+        
+        if creator_district != registrant_district:
+            raise serializers.ValidationError({
+                "passcode": f"This passcode is not valid for district '{attrs.get('district') or ''}'."
             })
 
         return attrs

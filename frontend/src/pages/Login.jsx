@@ -32,7 +32,7 @@ const Login = () => {
     setTimeoutMessage(null);
     try {
       await login(values.usernameOrEmail, values.password);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       console.error(err);
       if (typeof err === 'object') {

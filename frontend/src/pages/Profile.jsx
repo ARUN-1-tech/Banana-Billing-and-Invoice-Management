@@ -29,6 +29,7 @@ const Profile = () => {
         phone: user.phone,
         native_place: user.native_place,
         district: user.district,
+        pin: user.pin,
       });
       if (user.signature) {
         setSignatureData(user.signature);
@@ -190,6 +191,22 @@ const Profile = () => {
                     rules={[{ required: true, message: 'Please input the District!' }]}
                   >
                     <Input prefix={<GlobalOutlined />} placeholder="e.g. Trichy" disabled={user?.is_approved} />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="pin"
+                    label="Security PIN (4 Digits)"
+                    rules={[
+                      { required: true, message: 'Please input your 4-digit PIN!' },
+                      { len: 4, message: 'PIN must be exactly 4 digits!' },
+                      { pattern: /^\d+$/, message: 'PIN must contain only numbers!' }
+                    ]}
+                  >
+                    <Input.Password maxLength={4} placeholder="e.g. 1234" style={{ borderRadius: '8px' }} />
                   </Form.Item>
                 </Col>
               </Row>

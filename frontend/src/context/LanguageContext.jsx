@@ -104,7 +104,11 @@ const translations = {
     logic_error_title: "Validation Error",
     zero_weight_error: "Cannot add a new row because there is an entry with 0 or empty weight. Please enter valid weights first.",
     invalid_weight_msg: "Please enter a valid weight (greater than 0) for all entries.",
-    invalid_pieces_msg: "Please enter a valid piece count (greater than 0) for all entries."
+    invalid_pieces_msg: "Please enter a valid piece count (greater than 0) for all entries.",
+    security_lock: "Security PIN Required",
+    security_pin_desc: "Please enter your 4-digit security PIN to access this section.",
+    incorrect_pin: "Incorrect PIN. Please try again.",
+    verify_pin: "Verify PIN"
   },
   ta: {
     // Navigation
@@ -207,7 +211,11 @@ const translations = {
     logic_error_title: "சரிபார்ப்பு பிழை",
     zero_weight_error: "பூஜ்ஜிய அல்லது வெற்று எடை கொண்ட பதிவு இருப்பதால் புதிய வரிசையைச் சேர்க்க முடியாது. முதலில் சரியான எடையை உள்ளிடவும்.",
     invalid_weight_msg: "அனைத்து பதிவுகளுக்கும் தயவுசெய்து சரியான எடையை (0 ஐ விட அதிகமான) உள்ளிடவும்.",
-    invalid_pieces_msg: "அனைத்து பதிவுகளுக்கும் தயவுசெய்து சரியான எண்ணிக்கையை (0 ஐ விட அதிகமான) உள்ளிடவும்."
+    invalid_pieces_msg: "அனைத்து பதிவுகளுக்கும் தயவுசெய்து சரியான எண்ணிக்கையை (0 ஐ விட அதிகமான) உள்ளிடவும்.",
+    security_lock: "பாதுகாப்பு பின் தேவை",
+    security_pin_desc: "இப்பிரிவை அணுக உங்கள் 4-இலக்க பாதுகாப்பு பின்னை உள்ளிடவும்.",
+    incorrect_pin: "தவறான பின் எண். மீண்டும் முயற்சிக்கவும்.",
+    verify_pin: "பின்னை சரிபார்க்கவும்"
   },
   hi: {
     // Navigation
@@ -310,16 +318,36 @@ const translations = {
     logic_error_title: "सत्यापन त्रुटि",
     zero_weight_error: "0 या खाली वजन वाली प्रविष्टि होने के कारण नई पंक्ति नहीं जोड़ी जा सकती। कृपया पहले वैध वजन दर्ज करें।",
     invalid_weight_msg: "कृपया सभी प्रविष्टियों के लिए एक वैध वजन (0 से अधिक) दर्ज करें।",
-    invalid_pieces_msg: "कृपया सभी प्रविष्टियों के लिए एक वैध मात्रा (0 से अधिक) दर्ज करें।"
+    invalid_pieces_msg: "कृपया सभी प्रविष्टियों के लिए एक वैध मात्रा (0 से अधिक) दर्ज करें।",
+    security_lock: "सुरक्षा पिन आवश्यक",
+    security_pin_desc: "इस अनुभाग तक पहुँचने के लिए कृपया अपना 4-अंकीय सुरक्षा पिन दर्ज करें।",
+    incorrect_pin: "गलत पिन। कृपया पुन: प्रयास करें।",
+    verify_pin: "पिन सत्यापित करें"
   }
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState(localStorage.getItem('banana_language') || 'en');
+  const [language, setLanguageState] = useState('en');
 
   useEffect(() => {
-    localStorage.setItem('banana_language', language);
-  }, [language]);
+    const handleAuthChange = () => {
+      const currentUsername = localStorage.getItem('banana_username') || '';
+      const key = currentUsername ? `banana_language_${currentUsername}` : 'banana_language';
+      setLanguageState(localStorage.getItem(key) || 'en');
+    };
+
+    handleAuthChange(); // Initial load
+    window.addEventListener('auth-change', handleAuthChange);
+    return () => window.removeEventListener('auth-change', handleAuthChange);
+  }, []);
+
+  const setLanguage = (newLang) => {
+    const currentUsername = localStorage.getItem('banana_username') || '';
+    const key = currentUsername ? `banana_language_${currentUsername}` : 'banana_language';
+    localStorage.setItem(key, newLang);
+    localStorage.setItem('banana_language', newLang); // Sync fallback key
+    setLanguageState(newLang);
+  };
 
   const t = (key) => {
     return translations[language]?.[key] || translations['en']?.[key] || key;

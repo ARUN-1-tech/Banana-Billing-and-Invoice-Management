@@ -6,8 +6,8 @@ import { LanguageProvider } from './context/LanguageContext';
 import MainLayout from './components/MainLayout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
 import CreateInvoice from './pages/CreateInvoice';
+import PinGuard from './components/PinGuard';
 import InvoiceHistory from './pages/InvoiceHistory';
 import InvoiceDetails from './pages/InvoiceDetails';
 import Profile from './pages/Profile';
@@ -32,7 +32,7 @@ const PrivateRoute = ({ children, isDarkMode, toggleDarkMode, allowedRoles }) =>
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -40,6 +40,14 @@ const PrivateRoute = ({ children, isDarkMode, toggleDarkMode, allowedRoles }) =>
       {children}
     </MainLayout>
   );
+};
+
+const RootRedirect = () => {
+  const { user } = useAuth();
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin-panel" replace />;
+  }
+  return <Navigate to="/create-invoice" replace />;
 };
 
 const AppContent = ({ isDarkMode, toggleDarkMode }) => {
@@ -50,9 +58,14 @@ const AppContent = ({ isDarkMode, toggleDarkMode }) => {
       <Route path="/signup" element={<Signup />} />
 
       {/* Private Pages wrapped in layout */}
+      <Route path="/" element={
+        <PrivateRoute isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode}>
+          <RootRedirect />
+        </PrivateRoute>
+      } />
       <Route path="/dashboard" element={
         <PrivateRoute isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode}>
-          <Dashboard />
+          <RootRedirect />
         </PrivateRoute>
       } />
       <Route path="/create-invoice" element={
@@ -83,7 +96,9 @@ const AppContent = ({ isDarkMode, toggleDarkMode }) => {
       } />
       <Route path="/rates" element={
         <PrivateRoute isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode}>
-          <Rates />
+          <PinGuard>
+            <Rates />
+          </PinGuard>
         </PrivateRoute>
       } />
       <Route path="/admin-panel" element={
@@ -93,34 +108,53 @@ const AppContent = ({ isDarkMode, toggleDarkMode }) => {
       } />
       <Route path="/reports" element={
         <PrivateRoute isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} allowedRoles={['owner']}>
-          <Reports />
+          <PinGuard>
+            <Reports />
+          </PinGuard>
         </PrivateRoute>
       } />
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={
+        <PrivateRoute isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode}>
+          <RootRedirect />
+        </PrivateRoute>
+      } />
     </Routes>
   );
 };
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(
-    localStorage.getItem('banana_dark_mode') === 'true'
-  );
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      const currentUsername = localStorage.getItem('banana_username') || '';
+      const key = currentUsername ? `banana_dark_mode_${currentUsername}` : 'banana_dark_mode';
+      setIsDarkMode(localStorage.getItem(key) === 'true');
+    };
+
+    handleAuthChange(); // Initial load
+    window.addEventListener('auth-change', handleAuthChange);
+    return () => window.removeEventListener('auth-change', handleAuthChange);
+  }, []);
 
   // Sync dark-mode classes with body for custom glass styling
   useEffect(() => {
     if (isDarkMode) {
       document.body.classList.add('dark-mode');
-      localStorage.setItem('banana_dark_mode', 'true');
     } else {
       document.body.classList.remove('dark-mode');
-      localStorage.setItem('banana_dark_mode', 'false');
     }
   }, [isDarkMode]);
 
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
+    const currentUsername = localStorage.getItem('banana_username') || '';
+    const key = currentUsername ? `banana_dark_mode_${currentUsername}` : 'banana_dark_mode';
+    const newValue = !isDarkMode;
+    localStorage.setItem(key, String(newValue));
+    localStorage.setItem('banana_dark_mode', String(newValue)); // Sync generic fallback
+    setIsDarkMode(newValue);
   };
 
   return (

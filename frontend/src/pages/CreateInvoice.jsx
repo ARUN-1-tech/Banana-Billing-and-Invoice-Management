@@ -5,7 +5,7 @@ import {
 import {
   UserOutlined, PhoneOutlined, GlobalOutlined, FieldTimeOutlined,
   PlusOutlined, DeleteOutlined, CalculatorOutlined, CheckOutlined,
-  PrinterOutlined, DownloadOutlined, SaveOutlined, DashboardOutlined,
+  PrinterOutlined, DownloadOutlined, SaveOutlined, HistoryOutlined,
   CheckCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -864,8 +864,8 @@ const CreateInvoice = () => {
               <Button type="primary" onClick={downloadPDF} icon={<DownloadOutlined />} className="btn-purple">
                 Download PDF
               </Button>
-              <Button onClick={() => navigate('/dashboard')} icon={<DashboardOutlined />}>
-                Go to Dashboard
+              <Button onClick={() => navigate('/history')} icon={<HistoryOutlined />}>
+                Go to History
               </Button>
             </Space>
           </Card>

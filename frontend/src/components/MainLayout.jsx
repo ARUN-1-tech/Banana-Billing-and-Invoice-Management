@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, Avatar, Tooltip, Drawer, Space } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  MenuUnfoldOutlined, MenuFoldOutlined, DashboardOutlined,
+  MenuUnfoldOutlined, MenuFoldOutlined,
   FileAddOutlined, HistoryOutlined, LineChartOutlined,
   UserOutlined, SettingOutlined, BulbOutlined,
   LogoutOutlined, KeyOutlined, AppstoreOutlined
@@ -57,11 +57,6 @@ const MainLayout = ({ children, isDarkMode, toggleDarkMode }) => {
     if (user?.role === 'admin') {
       return [
         {
-          key: '/dashboard',
-          icon: <DashboardOutlined />,
-          label: <Link to="/dashboard">{t('dashboard')}</Link>,
-        },
-        {
           key: '/rates',
           icon: <AppstoreOutlined />,
           label: <Link to="/rates">{t('banana_rates')}</Link>,
@@ -80,11 +75,6 @@ const MainLayout = ({ children, isDarkMode, toggleDarkMode }) => {
     } else {
       // Billing Owner
       return [
-        {
-          key: '/dashboard',
-          icon: <DashboardOutlined />,
-          label: <Link to="/dashboard">{t('dashboard')}</Link>,
-        },
         {
           key: '/create-invoice',
           icon: <FileAddOutlined />,

@@ -56,6 +56,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'business_name': user.business_name,
             'native_place': user.native_place,
             'signature': user.signature,
+            'pin': user.pin,
         }
         return data
 
@@ -272,22 +273,27 @@ class ReportsView(APIView):
         invoices_today = Invoice.objects.filter(owner=user, date=today)
         invoices_week = Invoice.objects.filter(owner=user, date__gte=start_of_week)
         invoices_month = Invoice.objects.filter(owner=user, date__gte=start_of_month)
-        payments_today = Payment.objects.filter(invoice__owner=user, created_at__date=today)
-        payments_week = Payment.objects.filter(invoice__owner=user, created_at__date__gte=start_of_week)
-        payments_month = Payment.objects.filter(invoice__owner=user, created_at__date__gte=start_of_month)
 
-        # Daily Reports
-        total_bills_today = invoices_today.count()
-        total_revenue_today = payments_today.aggregate(sum=Sum('paid_amount'))['sum'] or 0.0
-        total_net_weight_today = invoices_today.aggregate(sum=Sum('net_weight'))['sum'] or 0.0
-        pending_payments_today = invoices_today.aggregate(sum=Sum('final_amount'))['sum'] or 0.0
-        total_paid_today = payments_today.aggregate(sum=Sum('paid_amount'))['sum'] or 0.0
-        pending_amount_today = max(0.0, float(pending_payments_today) - float(total_paid_today))
+        # Helper method for consistent daily/weekly/monthly metrics returns
+        def get_invoice_metrics(invoices):
+            count = invoices.count()
+            gross = invoices.aggregate(sum=Sum('gross_weight'))['sum'] or 0.0
+            net = invoices.aggregate(sum=Sum('net_weight'))['sum'] or 0.0
+            amount = invoices.aggregate(sum=Sum('final_amount'))['sum'] or 0.0
+            total_paid = Payment.objects.filter(invoice__in=invoices).aggregate(sum=Sum('paid_amount'))['sum'] or 0.0
+            pending = max(0.0, float(amount) - float(total_paid))
+            return {
+                'bills': count,
+                'gross_weight': float(gross),
+                'net_weight': float(net),
+                'amount': float(amount),
+                'pending': float(pending)
+            }
 
-        # Weekly Reports
-        weekly_revenue = payments_week.aggregate(sum=Sum('paid_amount'))['sum'] or 0.0
-        weekly_weight = invoices_week.aggregate(sum=Sum('net_weight'))['sum'] or 0.0
-        
+        daily_metrics = get_invoice_metrics(invoices_today)
+        weekly_metrics = get_invoice_metrics(invoices_week)
+        monthly_metrics = get_invoice_metrics(invoices_month)
+
         # Top banana type this week
         top_banana_type_week = (
             invoices_week.values('customer__banana_type')
@@ -297,19 +303,14 @@ class ReportsView(APIView):
         )
         top_banana_type = top_banana_type_week['customer__banana_type'] if top_banana_type_week else "None"
 
-        # Monthly Reports
-        monthly_revenue = payments_month.aggregate(sum=Sum('paid_amount'))['sum'] or 0.0
+        # Unique customers served this month
         monthly_customers = invoices_month.values('customer').distinct().count()
-        monthly_bills = invoices_month.count()
-
-        # Dashboard today's summary metrics
-        total_customers_today = invoices_today.values('customer').distinct().count()
 
         # Let's prepare a chart data dictionary for weekly trend
         weekly_chart = []
         for i in range(7):
             day = today - datetime.timedelta(days=i)
-            day_payments = payments_week.filter(created_at__date=day)
+            day_payments = Payment.objects.filter(invoice__owner=user, created_at__date=day)
             day_invoices = invoices_week.filter(date=day)
             weekly_chart.append({
                 'day': day.strftime('%a'),
@@ -325,12 +326,8 @@ class ReportsView(APIView):
             month_date = today - datetime.timedelta(days=i*30)
             m_start = month_date.replace(day=1)
             # Find invoices / payments for this month
-            if is_admin:
-                m_payments = Payment.objects.filter(created_at__date__gte=m_start, created_at__date__lt=m_start + datetime.timedelta(days=32))
-                m_invoices = Invoice.objects.filter(date__gte=m_start, date__lt=m_start + datetime.timedelta(days=32))
-            else:
-                m_payments = Payment.objects.filter(invoice__owner=user, created_at__date__gte=m_start, created_at__date__lt=m_start + datetime.timedelta(days=32))
-                m_invoices = Invoice.objects.filter(owner=user, date__gte=m_start, date__lt=m_start + datetime.timedelta(days=32))
+            m_payments = Payment.objects.filter(invoice__owner=user, created_at__date__gte=m_start, created_at__date__lt=m_start + datetime.timedelta(days=32))
+            m_invoices = Invoice.objects.filter(owner=user, date__gte=m_start, date__lt=m_start + datetime.timedelta(days=32))
 
             monthly_chart.append({
                 'month': m_start.strftime('%b %Y'),
@@ -341,23 +338,15 @@ class ReportsView(APIView):
         monthly_chart.reverse()
 
         return Response({
-            'daily': {
-                'total_bills': total_bills_today,
-                'total_revenue': float(total_revenue_today),
-                'total_net_weight': float(total_net_weight_today),
-                'pending_payments': float(pending_amount_today),
-                'total_customers': total_customers_today,
-            },
+            'daily': daily_metrics,
             'weekly': {
-                'revenue': float(weekly_revenue),
-                'weight': float(weekly_weight),
+                **weekly_metrics,
                 'top_banana_type': top_banana_type,
                 'chart_data': weekly_chart,
             },
             'monthly': {
-                'revenue': float(monthly_revenue),
+                **monthly_metrics,
                 'customers': monthly_customers,
-                'bills': monthly_bills,
                 'chart_data': monthly_chart,
             }
         })

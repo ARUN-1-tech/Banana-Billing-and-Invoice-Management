@@ -31,6 +31,12 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await axios.get('/auth/profile/');
           setUser(response.data);
+          // Set current user username in localStorage to scope settings
+          const oldUsername = localStorage.getItem('banana_username');
+          if (oldUsername !== response.data.username) {
+            localStorage.setItem('banana_username', response.data.username);
+            window.dispatchEvent(new Event('auth-change'));
+          }
         } catch (error) {
           console.error('Error fetching user profile', error);
           // If token is invalid or expired
@@ -38,6 +44,8 @@ export const AuthProvider = ({ children }) => {
             logout();
           }
         }
+      } else {
+        localStorage.removeItem('banana_username');
       }
       setIsLoading(false);
     };
@@ -68,6 +76,8 @@ export const AuthProvider = ({ children }) => {
       });
       const { access, user: userData } = response.data;
       localStorage.setItem('banana_token', access);
+      localStorage.setItem('banana_username', userData.username);
+      window.dispatchEvent(new Event('auth-change'));
       setToken(access);
       setUser(userData);
       return userData;
@@ -87,6 +97,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('banana_token');
+    localStorage.removeItem('banana_username');
+    window.dispatchEvent(new Event('auth-change'));
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
@@ -126,6 +138,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.patch('/auth/profile/', profileData);
       setUser(response.data);
+      const oldUsername = localStorage.getItem('banana_username');
+      if (oldUsername !== response.data.username) {
+        localStorage.setItem('banana_username', response.data.username);
+        window.dispatchEvent(new Event('auth-change'));
+      }
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message || 'Profile update failed';
