@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Form, Input, Button, Upload, Alert, Typography, Divider, Row, Col, Modal, Space, Select } from 'antd';
-import { UserOutlined, ShopOutlined, PhoneOutlined, HomeOutlined, GlobalOutlined, UploadOutlined, ClearOutlined, CheckOutlined, EditOutlined } from '@ant-design/icons';
+import { UserOutlined, ShopOutlined, PhoneOutlined, HomeOutlined, GlobalOutlined, UploadOutlined, ClearOutlined, CheckOutlined, EditOutlined, KeyOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -195,21 +195,51 @@ const Profile = () => {
                 </Col>
               </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
+              {user?.role !== 'admin' && (
+                <Card 
+                  size="small" 
+                  style={{ 
+                    marginTop: '16px', 
+                    marginBottom: '16px', 
+                    borderRadius: '12px', 
+                    background: 'rgba(246, 185, 59, 0.05)',
+                    border: '1px solid rgba(246, 185, 59, 0.2)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{
+                      background: '#f6b93b',
+                      color: '#000',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px'
+                    }}>
+                      <KeyOutlined style={{ fontSize: '16px' }} />
+                    </div>
+                    <div>
+                      <Typography.Text strong style={{ fontSize: '16px' }}>Security PIN</Typography.Text>
+                      <br />
+                      <Typography.Text type="secondary" style={{ fontSize: '12px' }}>Set a 4-digit PIN for authorizing invoices</Typography.Text>
+                    </div>
+                  </div>
+                  
                   <Form.Item
                     name="pin"
-                    label="Security PIN (4 Digits)"
                     rules={[
                       { required: true, message: 'Please input your 4-digit PIN!' },
                       { len: 4, message: 'PIN must be exactly 4 digits!' },
                       { pattern: /^\d+$/, message: 'PIN must contain only numbers!' }
                     ]}
+                    style={{ marginBottom: 0 }}
                   >
-                    <Input.Password maxLength={4} placeholder="e.g. 1234" style={{ borderRadius: '8px' }} />
+                    <Input.OTP length={4} size="large" style={{ gap: '12px' }} />
                   </Form.Item>
-                </Col>
-              </Row>
+                </Card>
+              )}
 
               <Divider />
 
